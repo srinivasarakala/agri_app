@@ -1,0 +1,62 @@
+double _toDouble(dynamic v) {
+  if (v == null) return 0;
+  if (v is num) return v.toDouble();
+  if (v is String) return double.tryParse(v) ?? 0;
+  return 0;
+}
+
+class OrderItem {
+  final int id;
+  final int product;
+  final String sku;
+  final String productName;
+  final String unit;
+  final double requestedQty;
+  final double approvedQty;
+
+  OrderItem({
+    required this.id,
+    required this.product,
+    required this.sku,
+    required this.productName,
+    required this.unit,
+    required this.requestedQty,
+    required this.approvedQty,
+  });
+
+  factory OrderItem.fromJson(Map<String, dynamic> j) => OrderItem(
+        id: j['id'],
+        product: j['product'],
+        sku: (j['sku'] ?? '').toString(),
+        productName: (j['product_name'] ?? '').toString(),
+        unit: (j['unit'] ?? 'pcs').toString(),
+        requestedQty: _toDouble(j['requested_qty']),
+        approvedQty: _toDouble(j['approved_qty']),
+      );
+}
+
+class Order {
+  final int id;
+  final String status;
+  final String? note;
+  final String phone;
+  final List<OrderItem> items;
+
+  Order({
+    required this.id,
+    required this.status,
+    required this.note,
+    required this.phone,
+    required this.items,
+  });
+
+  factory Order.fromJson(Map<String, dynamic> j) => Order(
+        id: j['id'],
+        status: (j['status'] ?? '').toString(),
+        note: j['note']?.toString(),
+        phone: (j['phone'] ?? '').toString(),
+        items: ((j['items'] ?? []) as List)
+            .map((x) => OrderItem.fromJson(x as Map<String, dynamic>))
+            .toList(),
+      );
+}
