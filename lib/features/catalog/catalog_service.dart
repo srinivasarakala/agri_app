@@ -1,9 +1,23 @@
 import '../../core/api/dio_client.dart';
 import 'product.dart';
+import 'package:dio/dio.dart';
 
 class CatalogService {
   final DioClient client;
   CatalogService(this.client);
+
+  Future<Product> adminUploadProductImage(int productId, String filePath) async {
+    final form = FormData.fromMap({
+      'image': await MultipartFile.fromFile(filePath),
+    });
+
+    final res = await client.dio.post(
+      '/api/admin/products/$productId/image',
+      data: form,
+    );
+
+    return Product.fromJson(res.data);
+  }
 
   Future<List<Product>> listProducts() async {
     final res = await client.dio.get('/api/products');
@@ -22,4 +36,9 @@ class CatalogService {
       "note": "adjust from app",
     });
   }
+
+  
+
+  
+
 }

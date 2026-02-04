@@ -5,10 +5,14 @@ import 'core/auth/token_storage.dart';
 import 'features/auth/auth_service.dart';
 import 'features/catalog/catalog_service.dart';
 import 'features/orders/orders_service.dart';
+import 'core/state/catalog_search_bus.dart';
+
 
 late final OrdersService ordersApi;
 late final AuthService appAuth;
 late final CatalogService catalogApi;
+late final CatalogSearchBus catalogSearchBus;
+
 
 void main() {
   final storage = TokenStorage();
@@ -16,7 +20,8 @@ void main() {
     baseUrl: 'http://10.0.2.2:8000', // emulator -> PC
     storage: storage,
   );
-
+  
+  catalogSearchBus = CatalogSearchBus();
   appAuth = AuthService(client: client, storage: storage);
   catalogApi = CatalogService(client);
   ordersApi = OrdersService(client);

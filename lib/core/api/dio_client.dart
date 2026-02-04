@@ -5,23 +5,53 @@ class DioClient {
   final Dio dio;
   final TokenStorage storage;
 
-  DioClient({
-    required String baseUrl,
-    required this.storage,
-  }) : dio = Dio(BaseOptions(
-          baseUrl: baseUrl,
-          connectTimeout: const Duration(seconds: 15),
-          receiveTimeout: const Duration(seconds: 30),
-          headers: {'Content-Type': 'application/json'},
-        )) {
+  DioClient({required String baseUrl, required this.storage})
+      : dio = Dio(BaseOptions(baseUrl: baseUrl)) {
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final data = await storage.readAll();
-        final token = data['access'];
-        if (token != null && token.isNotEmpty) {
-          options.headers['Authorization'] = 'Bearer $token';
+        final access = data['access'];
+        if (access != null && access.isNotEmpty) {
+          options.headers['Authorization'] = 'Bearer $access';
         }
         handler.next(options);
+      },
+      onError: (e, handler) async {
+        if (e.response?.statusCode != 401) return handler.next(e);
+        if (e.requestOptions.extra['retried'] == true) return handler.next(e);
+
+        final data = await storage.readAll();
+        final refresh = data['refresh'];
+        if (refresh == null || refresh.isEmpty) return handler.next(e);
+
+        try {
+          // refresh access
+          final r = await Dio(BaseOptions(baseUrl: dio.options.baseUrl)).post(
+            '/auth/refresh',
+            data: {'refresh': refresh},
+          );
+
+          final newAccess = r.data['access'] as String?;
+          if (newAccess == null || newAccess.isEmpty) return handler.next(e);
+
+          // save new access, keep refresh + role values intact
+          await storage.saveSession(
+            access: newAccess,
+            refresh: refresh,
+            role: data['role'] ?? 'SUBDEALER',
+            subdealerId: int.tryParse(data['subdealer_id'] ?? ''),
+          );
+
+          // retry original request
+          final ro = e.requestOptions;
+          ro.extra['retried'] = true;
+          ro.headers['Authorization'] = 'Bearer $newAccess';
+
+          final resp = await dio.fetch(ro);
+          return handler.resolve(resp);
+        } catch (_) {
+          return handler.next(e);
+        }
       },
     ));
   }

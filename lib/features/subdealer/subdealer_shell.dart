@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'pages/sd_home_page.dart';
 import 'pages/sd_catalog_page.dart';
-import 'pages/sd_orders_page.dart';
 import 'pages/sd_stock_page.dart';
 import 'pages/sd_ledger_page.dart';
 import '../../core/widgets/logout_button.dart';
@@ -9,6 +8,7 @@ import 'pages/sd_my_orders_page.dart';
 
 
 final titles = ['Home', 'Catalog', 'Orders', 'Stock', 'Ledger'];
+final subdealerTabIndex = ValueNotifier<int>(0);
 
 class SubdealerShell extends StatefulWidget {
   const SubdealerShell({super.key});
@@ -18,7 +18,7 @@ class SubdealerShell extends StatefulWidget {
 }
 
 class _SubdealerShellState extends State<SubdealerShell> {
-  int index = 0;
+  int get index => subdealerTabIndex.value;
 
   final pages = const [
     SdHomePage(),
@@ -37,8 +37,8 @@ class _SubdealerShellState extends State<SubdealerShell> {
       ),
       body: pages[index],
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: index,
-        onTap: (i) => setState(() => index = i),
+        onTap: (i) => setState(() => subdealerTabIndex.value = i),
+        currentIndex: subdealerTabIndex.value,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Catalog'),
@@ -49,4 +49,13 @@ class _SubdealerShellState extends State<SubdealerShell> {
       ),
     );
   }
+
+  @override
+  void initState() {
+    super.initState();
+    subdealerTabIndex.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
 }

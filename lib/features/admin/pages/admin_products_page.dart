@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../main.dart';
 import '../../catalog/product.dart';
+import 'package:image_picker/image_picker.dart';
 
 class AdminProductsPage extends StatefulWidget {
   const AdminProductsPage({super.key});
@@ -53,7 +54,7 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
 
     if (ok != true) return;
 
-    await catalogApi.adminCreateProduct({
+    final created = await catalogApi.adminCreateProduct({
       "sku": sku.text.trim(),
       "name": name.text.trim(),
       "unit": "pcs",
@@ -63,7 +64,25 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
       "is_active": true,
     });
 
+    // Ask to upload image now
+    final uploadNow = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Upload image now?"),
+        content: const Text("You can skip and upload later using the photo button."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Skip")),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text("Upload")),
+        ],
+      ),
+    );
+
+    if (uploadNow == true) {
+      await pickAndUploadImage(created);
+    }
+
     await load();
+
   }
 
   Future<void> stockAdjust(Product p) async {
@@ -91,6 +110,21 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
     await catalogApi.adminStockAdjust(p.id, delta);
     await load();
   }
+
+  final picker = ImagePicker();
+
+  Future<void> pickAndUploadImage(Product p) async {
+    final x = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (x == null) return;
+
+    final updated = await catalogApi.adminUploadProductImage(p.id, x.path);
+
+    setState(() {
+      final idx = items.indexWhere((e) => e.id == p.id);
+      if (idx != -1) items[idx] = updated;
+    });
+  }
+
 
   @override
   void initState() {
@@ -121,11 +155,38 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                     itemBuilder: (context, i) {
                       final p = items[i];
                       return ListTile(
-                        title: Text(p.name),
-                        subtitle: Text("${p.sku} • ₹${p.sellingPrice}"),
-                        trailing: Text("Stock: ${p.globalStock}"),
-                        onTap: () => stockAdjust(p),
-                      );
+                              title: Text(p.name),
+                              subtitle: Text("${p.sku} • ₹${p.sellingPrice}"),
+                              leading: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: SizedBox(
+                                  width: 44,
+                                  height: 44,
+                                  child: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
+                                      ? Image.network(p.imageUrl!, fit: BoxFit.cover)
+                                      : Container(color: Colors.grey.shade200, child: const Icon(Icons.image)),
+                                ),
+                              ),
+
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // ✅ Upload image button
+                                  IconButton(
+                                    tooltip: "Upload image",
+                                    icon: const Icon(Icons.photo),
+                                    onPressed: () => pickAndUploadImage(p),
+                                  ),
+
+                                  const SizedBox(width: 6),
+
+                                  Text("Stock: ${p.globalStock}"),
+                                ],
+                              ),
+
+                              onTap: () => stockAdjust(p),
+                            );
+
                     },
                   ),
                 ),

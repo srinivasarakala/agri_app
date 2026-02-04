@@ -15,6 +15,8 @@ class Product {
   final double sellingPrice;
   final double globalStock;
   final bool isActive;
+  final String? imageUrl;
+  
 
   Product({
     required this.id,
@@ -26,6 +28,7 @@ class Product {
     required this.sellingPrice,
     required this.globalStock,
     required this.isActive,
+    required this.imageUrl,
   });
 
   factory Product.fromJson(Map<String, dynamic> j) => Product(
@@ -38,5 +41,7 @@ class Product {
         sellingPrice: _toDouble(j['selling_price']),
         globalStock: _toDouble(j['global_stock']),
         isActive: (j['is_active'] ?? true) as bool,
+        imageUrl: j['image_url'] as String?,
+
       );
 }
