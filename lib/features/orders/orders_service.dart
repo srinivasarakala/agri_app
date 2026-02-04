@@ -21,10 +21,15 @@ class OrdersService {
     return Order.fromJson(res.data);
   }
 
-  Future<List<Order>> adminOrders() async {
-    final res = await client.dio.get('/api/admin/orders');
+  Future<List<Order>> adminOrders({String? status, String? q}) async {
+    final qp = <String, dynamic>{};
+    if (status != null && status.isNotEmpty) qp['status'] = status;
+    if (q != null && q.trim().isNotEmpty) qp['q'] = q.trim();
+
+    final res = await client.dio.get('/api/admin/orders', queryParameters: qp);
     return (res.data as List).map((x) => Order.fromJson(x)).toList().cast<Order>();
   }
+
 
   Future<Order> adminApprove(int orderId, List<Map<String, dynamic>> items, {String? note}) async {
     final res = await client.dio.post('/api/admin/orders/$orderId/approve', data: {

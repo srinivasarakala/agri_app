@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../main.dart';
 import '../../orders/order_models.dart';
 
+final searchCtrl = TextEditingController();
+bool pendingOnly = true;
 
 class AdminOrdersPage extends StatefulWidget {
   const AdminOrdersPage({super.key});
@@ -18,13 +20,17 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
   Future<void> load() async {
     setState(() { loading = true; error = null; });
     try {
-      orders = await ordersApi.adminOrders();
+      orders = await ordersApi.adminOrders(
+        status: pendingOnly ? 'PENDING' : null,
+        q: searchCtrl.text,
+      );
     } catch (e) {
       error = "Failed to load orders: $e";
     } finally {
       setState(() { loading = false; });
     }
   }
+
 
   Future<void> approveDialog(Order o) async {
     // default approvals = requested qty (admin can edit)
@@ -112,6 +118,41 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+          actions: [
+            IconButton(
+              tooltip: pendingOnly ? 'Showing Pending' : 'Showing All',
+              icon: Icon(pendingOnly ? Icons.filter_alt : Icons.filter_alt_off),
+              onPressed: () {
+                setState(() => pendingOnly = !pendingOnly);
+                load();
+              },
+            ),
+            IconButton(
+              tooltip: 'Search phone',
+              icon: const Icon(Icons.search),
+              onPressed: () async {
+                final ok = await showDialog<bool>(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text("Search by subdealer phone"),
+                    content: TextField(
+                      controller: searchCtrl,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(hintText: "eg: 9000"),
+                    ),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+                      ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text("Apply")),
+                    ],
+                  ),
+                );
+                if (ok == true) load();
+              },
+            ),
+          ],
+        ),
+
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : error != null
