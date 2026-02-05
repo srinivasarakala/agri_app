@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../main.dart';
 import '../../catalog/product.dart';
-import '../../catalog/widgets/product_card.dart';
-
-final FocusNode searchFocus = FocusNode();
 
 class SdCatalogPage extends StatefulWidget {
   const SdCatalogPage({super.key});
@@ -19,22 +16,38 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
   List<Product> all = [];
   List<Product> shown = [];
 
+  final searchCtrl = TextEditingController();
   late final FocusNode searchFocus;
+
   VoidCallback? _busListener;
 
+  // ✅ cart: productId -> qty (int)
+  final Map<int, int> cartQty = {};
+  int get totalCartQty => cartQty.values.fold(0, (a, b) => a + b);
 
-  final searchCtrl = TextEditingController();
-  final Map<int, double> cart = {}; // productId -> qty
+  void setQty(int productId, int newQty) {
+    setState(() {
+      if (newQty <= 0) {
+        cartQty.remove(productId);
+      } else {
+        cartQty[productId] = newQty;
+      }
+    });
+  }
 
   Future<void> load() async {
-    setState(() { loading = true; error = null; });
+    setState(() {
+      loading = true;
+      error = null;
+    });
+
     try {
       all = await catalogApi.listProducts();
       _applyFilter();
     } catch (e) {
       error = "Failed to load products: $e";
     } finally {
-      setState(() { loading = false; });
+      setState(() => loading = false);
     }
   }
 
@@ -44,66 +57,97 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
       if (q.isEmpty) return true;
       return p.name.toLowerCase().contains(q) || p.sku.toLowerCase().contains(q);
     }).toList();
+
     setState(() {});
   }
 
-  Future<void> addToCart(Product p) async {
-    final ctrl = TextEditingController(text: "1");
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text("Add: ${p.name}"),
-        content: TextField(
-          controller: ctrl,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: "Qty (${p.unit})"),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text("Add")),
-        ],
-      ),
-    );
-    if (ok != true) return;
-
-    final qty = double.tryParse(ctrl.text.trim()) ?? 0;
-    if (qty <= 0) return;
-
-    setState(() {
-      cart[p.id] = (cart[p.id] ?? 0) + qty;
-    });
-  }
-
-  Future<void> submitOrder() async {
-    if (cart.isEmpty) return;
-
-    final noteCtrl = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Submit Order"),
-        content: TextField(controller: noteCtrl, decoration: const InputDecoration(labelText: "Note (optional)")),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text("Submit")),
-        ],
-      ),
-    );
-    if (ok != true) return;
-
-    final itemsPayload = cart.entries
-        .map((e) => {"product_id": e.key, "qty": e.value})
-        .toList();
+  Future<void> placeOrder() async {
+    if (cartQty.isEmpty) return;
 
     try {
-      await ordersApi.createOrder(note: noteCtrl.text.trim(), items: itemsPayload);
+      // ✅ your endpoint is /api/orders/create inside OrdersService
+      await ordersApi.createOrder(
+        items: cartQty.entries
+            .map((e) => {"product_id": e.key, "qty": e.value})
+            .toList(),
+      );
+
       if (!mounted) return;
-      setState(() => cart.clear());
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Order placed")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Order placed successfully")),
+      );
+
+      setState(() => cartQty.clear());
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Order failed: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to place order: $e")),
+      );
     }
+  }
+
+  void openCartSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (_) {
+        final cartItems = all.where((p) => cartQty.containsKey(p.id)).toList();
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Cart", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 12),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: cartItems.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (_, i) {
+                    final p = cartItems[i];
+                    final qty = cartQty[p.id] ?? 0;
+                    return ListTile(
+                      title: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      subtitle: Text("₹${p.sellingPrice} • ${p.unit}"),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: () => setQty(p.id, qty - 1),
+                          ),
+                          Text("$qty", style: const TextStyle(fontWeight: FontWeight.w800)),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline),
+                            onPressed: () => setQty(p.id, qty + 1),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    await placeOrder();
+                  },
+                  child: const Text("Place Order"),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -112,63 +156,56 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
 
     searchFocus = FocusNode();
 
+    // ✅ bus listener: tap search on home -> open catalog + focus
     _busListener = () {
       if (!mounted) return;
       if (!catalogSearchBus.goToCatalog) return;
 
       final t = catalogSearchBus.text;
       searchCtrl.text = t;
-      searchCtrl.selection = TextSelection.fromPosition(
-        TextPosition(offset: t.length),
-      );
+      searchCtrl.selection = TextSelection.fromPosition(TextPosition(offset: t.length));
 
       if (searchFocus.canRequestFocus) {
         FocusScope.of(context).requestFocus(searchFocus);
       }
 
       catalogSearchBus.consumeGoToCatalog();
+      _applyFilter();
     };
 
-    // ✅ add AFTER assignment
     catalogSearchBus.addListener(_busListener!);
+
+    // live filter while typing
+    searchCtrl.addListener(_applyFilter);
 
     load();
   }
 
-
-
   @override
   void dispose() {
-    if (_busListener != null) {
-      catalogSearchBus.removeListener(_busListener!);
-    }
+    if (_busListener != null) catalogSearchBus.removeListener(_busListener!);
+    searchCtrl.removeListener(_applyFilter);
     searchFocus.dispose();
     searchCtrl.dispose();
     super.dispose();
   }
 
-
-
   @override
   Widget build(BuildContext context) {
-    final cartCount = cart.length;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text("Catalog"),
         actions: [
-          TextButton(
-            onPressed: cart.isEmpty ? null : submitOrder,
-            child: Text(
-              "Submit ($cartCount)",
-              style: TextStyle(color: cart.isEmpty ? Colors.grey : Colors.white),
-            ),
-          )
+          IconButton(
+            tooltip: "Refresh",
+            onPressed: load,
+            icon: const Icon(Icons.refresh),
+          ),
         ],
       ),
       body: Column(
         children: [
-          // Search (like your screenshot)
+          // Search bar
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
             child: TextField(
@@ -179,44 +216,11 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
                 fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
-            ),
-          ),
-
-          // Sort/Filter row (like screenshot)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                TextButton.icon(
-                  onPressed: () {
-                    // simple sort: stock desc
-                    all.sort((a, b) => b.globalStock.compareTo(a.globalStock));
-                    _applyFilter();
-                  },
-                  icon: const Icon(Icons.sort),
-                  label: const Text("Sort"),
-                ),
-                const SizedBox(width: 8),
-                TextButton.icon(
-                  onPressed: () {
-                    // simple filter: in-stock only toggle
-                    setState(() {
-                      all = all.where((p) => p.globalStock > 0).toList();
-                      _applyFilter();
-                    });
-                  },
-                  icon: const Icon(Icons.filter_alt),
-                  label: const Text("Filter"),
-                ),
-                const Spacer(),
-                IconButton(
-                  tooltip: "Refresh",
-                  onPressed: load,
-                  icon: const Icon(Icons.refresh),
-                )
-              ],
             ),
           ),
 
@@ -229,26 +233,210 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
                     ? Center(child: Text(error!))
                     : shown.isEmpty
                         ? const Center(child: Text("No products"))
-                        : GridView.builder(
+                        : ListView.separated(
                             padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 0.70,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 10,
-                            ),
                             itemCount: shown.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 8),
                             itemBuilder: (context, i) {
                               final p = shown[i];
-                              return ProductCard(
+                              final qty = cartQty[p.id] ?? 0;
+
+                              return ProductRow(
                                 p: p,
-                                onAdd: () => addToCart(p),
-                                onTap: () => addToCart(p), // for now tap also adds
+                                qty: qty,
+                                onMinus: () => setQty(p.id, qty - 1),
+                                onPlus: () => setQty(p.id, qty + 1),
+                                onQtyTextChanged: (v) => setQty(p.id, int.tryParse(v.trim()) ?? 0),
+                                onAddPressed: qty > 0
+                                    ? () {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text("Added $qty x ${p.name}")),
+                                        );
+                                      }
+                                    : null,
                               );
                             },
                           ),
           ),
         ],
+      ),
+
+      // ✅ bottom cart bar
+      bottomNavigationBar: totalCartQty == 0
+          ? null
+          : SafeArea(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  boxShadow: [
+                    BoxShadow(
+                      blurRadius: 12,
+                      color: Colors.black.withOpacity(0.08),
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        "$totalCartQty item(s) in cart",
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: openCartSheet,
+                      child: const Text("View Cart"),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      onPressed: placeOrder,
+                      child: const Text("Place Order"),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+}
+
+class ProductRow extends StatelessWidget {
+  final Product p;
+  final int qty;
+  final VoidCallback onMinus;
+  final VoidCallback onPlus;
+  final ValueChanged<String> onQtyTextChanged;
+  final VoidCallback? onAddPressed;
+
+  const ProductRow({
+    super.key,
+    required this.p,
+    required this.qty,
+    required this.onMinus,
+    required this.onPlus,
+    required this.onQtyTextChanged,
+    this.onAddPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final inStock = p.globalStock > 0;
+
+    return Card(
+      elevation: 0.8,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // thumbnail
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: SizedBox(
+                width: 64,
+                height: 64,
+                child: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
+                    ? Image.network(p.imageUrl!, fit: BoxFit.cover)
+                    : Container(
+                        color: Colors.grey.shade200,
+                        child: const Icon(Icons.image, color: Colors.grey),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 10),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    p.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "${p.sku} • ${p.unit}",
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+
+                  Row(
+                    children: [
+                      Text(
+                        "₹${p.sellingPrice}",
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: inStock ? Colors.green.withOpacity(0.12) : Colors.red.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          inStock ? "In Stock" : "Out",
+                          style: TextStyle(
+                            color: inStock ? Colors.green.shade800 : Colors.red.shade800,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        "Stock: ${p.globalStock}",
+                        style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline),
+                        onPressed: qty > 0 ? onMinus : null,
+                      ),
+                      SizedBox(
+                        width: 64,
+                        child: TextField(
+                          textAlign: TextAlign.center,
+                          keyboardType: TextInputType.number,
+                          controller: TextEditingController(text: qty.toString()),
+                          onChanged: onQtyTextChanged,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline),
+                        onPressed: onPlus,
+                      ),
+                      const Spacer(),
+                      ElevatedButton(
+                        onPressed: qty > 0 ? onAddPressed : null,
+                        child: const Text("Add"),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
