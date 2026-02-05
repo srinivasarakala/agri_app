@@ -18,7 +18,6 @@ class SubdealerShell extends StatefulWidget {
 }
 
 class _SubdealerShellState extends State<SubdealerShell> {
-  int get index => subdealerTabIndex.value;
 
   final pages = const [
     SdHomePage(),
@@ -30,32 +29,31 @@ class _SubdealerShellState extends State<SubdealerShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Subdealer • ${titles[index]}'),
-        actions: const [LogoutButton()],
-      ),
-      body: pages[index],
-      bottomNavigationBar: BottomNavigationBar(
-        onTap: (i) => setState(() => subdealerTabIndex.value = i),
-        currentIndex: subdealerTabIndex.value,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Catalog'),
-          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'My Orders'),
-          BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Stock'),
-          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'Ledger'),
-        ],
-      ),
+    return ValueListenableBuilder<int>(
+      valueListenable: subdealerTabIndex,
+      builder: (_, index, __) {
+        return Scaffold(
+          appBar: AppBar(
+            title: Text('Subdealer • ${titles[index]}'),
+            actions: const [LogoutButton()],
+          ),
+          body: pages[index],
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: index,
+            onTap: (i) => subdealerTabIndex.value = i,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+              BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Catalog'),
+              BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'My Orders'),
+              BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Stock'),
+              BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'Ledger'),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-    subdealerTabIndex.addListener(() {
-      if (mounted) setState(() {});
-    });
-  }
+
 
 }
