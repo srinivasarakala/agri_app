@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../main.dart';
 import '../../catalog/product.dart';
+import '../../../core/cart/cart_state.dart';
+
 
 class SdCatalogPage extends StatefulWidget {
-  const SdCatalogPage({super.key});
-
+  final String initialQuery;
+  const SdCatalogPage({super.key, this.initialQuery = ""});
+  
   @override
   State<SdCatalogPage> createState() => _SdCatalogPageState();
 }
@@ -22,18 +25,6 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
   VoidCallback? _busListener;
 
   // ✅ cart: productId -> qty (int)
-  final Map<int, int> cartQty = {};
-  int get totalCartQty => cartQty.values.fold(0, (a, b) => a + b);
-
-  void setQty(int productId, int newQty) {
-    setState(() {
-      if (newQty <= 0) {
-        cartQty.remove(productId);
-      } else {
-        cartQty[productId] = newQty;
-      }
-    });
-  }
 
   Future<void> load() async {
     setState(() {
@@ -62,22 +53,21 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
   }
 
   Future<void> placeOrder() async {
-    if (cartQty.isEmpty) return;
+    if (cartQty.value.isEmpty) return;
 
     try {
-      // ✅ your endpoint is /api/orders/create inside OrdersService
-      await ordersApi.createOrder(
-        items: cartQty.entries
-            .map((e) => {"product_id": e.key, "qty": e.value})
-            .toList(),
-      );
+      final items = cartQty.value.entries
+          .map((e) => {"product_id": e.key, "qty": e.value})
+          .toList();
+
+      await ordersApi.createOrder(items: items);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Order placed successfully")),
       );
 
-      setState(() => cartQty.clear());
+      cartClear();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -85,6 +75,7 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
       );
     }
   }
+
 
   void openCartSheet() {
     showModalBottomSheet(
@@ -94,7 +85,7 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
       ),
       builder: (_) {
-        final cartItems = all.where((p) => cartQty.containsKey(p.id)).toList();
+        final cartItems = all.where((p) => cartQty.value.containsKey(p.id)).toList();
 
         return Padding(
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 20),
@@ -110,7 +101,7 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (_, i) {
                     final p = cartItems[i];
-                    final qty = cartQty[p.id] ?? 0;
+                    final qty = cartQty.value[p.id] ?? 0;
                     return ListTile(
                       title: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis),
                       subtitle: Text("₹${p.sellingPrice} • ${p.unit}"),
@@ -119,12 +110,12 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.remove_circle_outline),
-                            onPressed: () => setQty(p.id, qty - 1),
+                            onPressed: () => cartSetQty(p.id, qty-1),
                           ),
                           Text("$qty", style: const TextStyle(fontWeight: FontWeight.w800)),
                           IconButton(
                             icon: const Icon(Icons.add_circle_outline),
-                            onPressed: () => setQty(p.id, qty + 1),
+                            onPressed: () => cartSetQty(p.id, qty+1),
                           ),
                         ],
                       ),
@@ -155,6 +146,7 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
     super.initState();
 
     searchFocus = FocusNode();
+    searchCtrl.text = widget.initialQuery;
 
     // ✅ bus listener: tap search on home -> open catalog + focus
     _busListener = () {
@@ -239,14 +231,14 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
                             separatorBuilder: (_, __) => const SizedBox(height: 8),
                             itemBuilder: (context, i) {
                               final p = shown[i];
-                              final qty = cartQty[p.id] ?? 0;
+                              final qty = cartQty.value[p.id] ?? 0;
 
                               return ProductRow(
                                 p: p,
                                 qty: qty,
-                                onMinus: () => setQty(p.id, qty - 1),
-                                onPlus: () => setQty(p.id, qty + 1),
-                                onQtyTextChanged: (v) => setQty(p.id, int.tryParse(v.trim()) ?? 0),
+                                onMinus: () => cartSetQty(p.id, qty-1),
+                                onPlus: () => cartSetQty(p.id, qty+1),
+                                onQtyTextChanged: (v) => cartSetQty(p.id, int.tryParse(v.trim()) ?? 0),
                                 onAddPressed: qty > 0
                                     ? () {
                                         ScaffoldMessenger.of(context).showSnackBar(
@@ -262,42 +254,28 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
       ),
 
       // ✅ bottom cart bar
-      bottomNavigationBar: totalCartQty == 0
-          ? null
-          : SafeArea(
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  boxShadow: [
-                    BoxShadow(
-                      blurRadius: 12,
-                      color: Colors.black.withOpacity(0.08),
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        "$totalCartQty item(s) in cart",
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: openCartSheet,
-                      child: const Text("View Cart"),
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton(
-                      onPressed: placeOrder,
-                      child: const Text("Place Order"),
-                    ),
-                  ],
-                ),
+      bottomNavigationBar: ValueListenableBuilder<Map<int,int>>(
+        valueListenable: cartQty,
+        builder: (_, m, __) {
+          final total = m.values.fold(0, (a,b) => a + b);
+          if (total == 0) return const SizedBox.shrink();
+
+          return SafeArea(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  Expanded(child: Text("$total item(s) in cart", style: const TextStyle(fontWeight: FontWeight.w800))),
+                  ElevatedButton(onPressed: openCartSheet, child: const Text("View Cart")),
+                  const SizedBox(width: 10),
+                  ElevatedButton(onPressed: placeOrder, child: const Text("Place Order")),
+                ],
               ),
             ),
+          );
+        },
+      ),
+
     );
   }
 }
@@ -405,22 +383,17 @@ class ProductRow extends StatelessWidget {
                         icon: const Icon(Icons.remove_circle_outline),
                         onPressed: qty > 0 ? onMinus : null,
                       ),
-                      SizedBox(
+                      Container(
                         width: 64,
-                        child: TextField(
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          controller: TextEditingController(text: qty.toString()),
-                          onChanged: onQtyTextChanged,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade400),
+                          borderRadius: BorderRadius.circular(10),
                         ),
+                        child: Text("$qty", style: const TextStyle(fontWeight: FontWeight.w800)),
                       ),
+
                       IconButton(
                         icon: const Icon(Icons.add_circle_outline),
                         onPressed: onPlus,

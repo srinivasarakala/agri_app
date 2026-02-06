@@ -18,9 +18,9 @@ class _OtpPageState extends State<OtpPage> {
   Future<void> verify() async {
     setState(() { loading = true; error = null; });
     try {
-      final session = await appAuth.verifyOtp(widget.phone, otpCtrl.text.trim());
+      await appAuth.verifyOtp(widget.phone, otpCtrl.text.trim());
       if (!mounted) return;
-      context.go(session.isAdmin ? '/admin' : '/subdealer');
+      context.go('/app');
     } catch (_) {
       setState(() => error = 'Invalid OTP');
     } finally {

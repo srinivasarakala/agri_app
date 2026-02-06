@@ -6,6 +6,11 @@ import 'features/auth/auth_service.dart';
 import 'features/catalog/catalog_service.dart';
 import 'features/orders/orders_service.dart';
 import 'core/state/catalog_search_bus.dart';
+import 'core/auth/session.dart';
+
+Session? currentSession;
+
+
 
 
 late final OrdersService ordersApi;

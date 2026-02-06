@@ -1,9 +1,9 @@
 import 'package:go_router/go_router.dart';
+
 import 'features/auth/phone_page.dart';
 import 'features/auth/otp_page.dart';
-import 'features/admin/admin_shell.dart';
-import 'features/subdealer/subdealer_shell.dart';
-import 'main.dart';
+import 'features/shell/app_shell.dart';
+import 'main.dart'; // contains appAuth + currentSession
 
 GoRouter buildRouter() {
   return GoRouter(
@@ -20,24 +20,34 @@ GoRouter buildRouter() {
           return OtpPage(phone: extra['phone'] as String);
         },
       ),
-      // ✅ IMPORTANT: /admin must load AdminShell (with bottom nav)
+
+      // ✅ single app entry
       GoRoute(
-        path: '/admin',
-        builder: (_, __) => const AdminShell(),
-      ),
-      GoRoute(
-        path: '/subdealer',
-        builder: (_, __) => const SubdealerShell(),
+        path: '/app',
+        builder: (_, __) {
+          // currentSession is set by redirect()
+          final role = currentSession?.role ?? "SUBDEALER";
+          return AppShell(role: role); // ✅ NO const
+        },
       ),
     ],
+
     redirect: (context, state) async {
       final loc = state.uri.toString();
       final isAuth = (loc == '/login' || loc == '/otp');
 
-      final session = await appAuth.restore();
-      if (session == null) return isAuth ? null : '/login';
+      // Restore session once per navigation; cache it globally
+      currentSession = await appAuth.restore();
 
-      if (isAuth) return session.isAdmin ? '/admin' : '/subdealer';
+      // Not logged in -> force login
+      if (currentSession == null) {
+        return isAuth ? null : '/login';
+      }
+
+      // Logged in -> always go to /app if on auth screens
+      if (isAuth) return '/app';
+
+      // Already logged in and trying other routes -> allow
       return null;
     },
   );
