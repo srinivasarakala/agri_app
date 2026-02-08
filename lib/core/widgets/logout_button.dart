@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../main.dart';
+import '../cart/cart_state.dart';
 
 class LogoutButton extends StatelessWidget {
   const LogoutButton({super.key});
@@ -20,7 +21,12 @@ class LogoutButton extends StatelessWidget {
 
     if (ok != true) return;
 
-    await appAuth.logout(); // this should clear token storage
+    // Clear user session (clears in-memory cart/favorites without saving)
+    print('Logging out, clearing session');
+    clearUserSession();
+    print('Session cleared, logging out auth');
+    await appAuth.logout(); // Clear token storage
+    print('Auth logged out, navigating to login');
     if (!context.mounted) return;
     context.go('/login');
   }

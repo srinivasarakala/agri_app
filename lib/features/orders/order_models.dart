@@ -25,38 +25,56 @@ class OrderItem {
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> j) => OrderItem(
-        id: j['id'],
-        product: j['product'],
-        sku: (j['sku'] ?? '').toString(),
-        productName: (j['product_name'] ?? '').toString(),
-        unit: (j['unit'] ?? 'pcs').toString(),
-        requestedQty: _toDouble(j['requested_qty']),
-        approvedQty: _toDouble(j['approved_qty']),
-      );
+    id: j['id'],
+    product: j['product'],
+    sku: (j['sku'] ?? '').toString(),
+    productName: (j['product_name'] ?? '').toString(),
+    unit: (j['unit'] ?? 'pcs').toString(),
+    requestedQty: _toDouble(j['requested_qty']),
+    approvedQty: _toDouble(j['approved_qty']),
+  );
 }
 
 class Order {
   final int id;
   final String status;
+  final String deliveryStatus;
   final String? note;
   final String phone;
   final List<OrderItem> items;
+  final DateTime? decidedAt;
+  final DateTime? shippedAt;
+  final DateTime? deliveredAt;
 
   Order({
     required this.id,
     required this.status,
+    required this.deliveryStatus,
     required this.note,
     required this.phone,
     required this.items,
+    this.decidedAt,
+    this.shippedAt,
+    this.deliveredAt,
   });
 
   factory Order.fromJson(Map<String, dynamic> j) => Order(
-        id: j['id'],
-        status: (j['status'] ?? '').toString(),
-        note: j['note']?.toString(),
-        phone: (j['phone'] ?? '').toString(),
-        items: ((j['items'] ?? []) as List)
-            .map((x) => OrderItem.fromJson(x as Map<String, dynamic>))
-            .toList(),
-      );
+    id: j['id'],
+    status: (j['status'] ?? '').toString(),
+    deliveryStatus: (j['delivery_status'] ?? 'NOT_APPLICABLE').toString(),
+    note: j['note']?.toString(),
+    phone: (j['phone'] ?? '').toString(),
+    items: ((j['items'] ?? []) as List)
+        .map((x) => OrderItem.fromJson(x as Map<String, dynamic>))
+        .toList(),
+    decidedAt: j['decided_at'] != null
+        ? DateTime.tryParse(j['decided_at'])
+        : null,
+    shippedAt: j['shipped_at'] != null
+        ? DateTime.tryParse(j['shipped_at'])
+        : null,
+    deliveredAt: j['delivered_at'] != null
+        ? DateTime.tryParse(j['delivered_at'])
+        : null,
+  );
 }

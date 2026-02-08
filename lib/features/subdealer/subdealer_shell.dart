@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'pages/sd_home_page.dart';
 import 'pages/sd_catalog_page.dart';
-import 'pages/sd_stock_page.dart';
 import 'pages/sd_ledger_page.dart';
 import '../../core/widgets/logout_button.dart';
 import 'pages/sd_my_orders_page.dart';
 
-
-final titles = ['Home', 'Catalog', 'Orders', 'Stock', 'Ledger'];
+final titles = ['Home', 'Catalog', 'Orders', 'Ledger'];
 final subdealerTabIndex = ValueNotifier<int>(0);
 
 class SubdealerShell extends StatefulWidget {
@@ -18,12 +16,10 @@ class SubdealerShell extends StatefulWidget {
 }
 
 class _SubdealerShellState extends State<SubdealerShell> {
-
   final pages = const [
     SdHomePage(),
     SdCatalogPage(),
     SdMyOrdersPage(),
-    SdStockPage(),
     SdLedgerPage(),
   ];
 
@@ -43,17 +39,22 @@ class _SubdealerShellState extends State<SubdealerShell> {
             onTap: (i) => subdealerTabIndex.value = i,
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-              BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Catalog'),
-              BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'My Orders'),
-              BottomNavigationBarItem(icon: Icon(Icons.inventory), label: 'Stock'),
-              BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: 'Ledger'),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.search),
+                label: 'Catalog',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.list_alt),
+                label: 'My Orders',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.account_balance_wallet),
+                label: 'Ledger',
+              ),
             ],
           ),
         );
       },
     );
   }
-
-
-
 }

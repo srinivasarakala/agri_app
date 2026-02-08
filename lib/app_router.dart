@@ -3,12 +3,17 @@ import 'package:go_router/go_router.dart';
 import 'features/auth/phone_page.dart';
 import 'features/auth/otp_page.dart';
 import 'features/shell/app_shell.dart';
+import 'features/splash/splash_screen.dart';
 import 'main.dart'; // contains appAuth + currentSession
 
 GoRouter buildRouter() {
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/',
     routes: [
+      GoRoute(
+        path: '/',
+        builder: (_, __) => const SplashScreen(),
+      ),
       GoRoute(
         path: '/login',
         builder: (_, __) => const PhonePage(),
@@ -34,6 +39,10 @@ GoRouter buildRouter() {
 
     redirect: (context, state) async {
       final loc = state.uri.toString();
+      
+      // Allow splash screen without redirect
+      if (loc == '/') return null;
+      
       final isAuth = (loc == '/login' || loc == '/otp');
 
       // Restore session once per navigation; cache it globally

@@ -32,6 +32,15 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+flutter.pid
+
+# Generated plugin files
+**/generated_plugin_registrant.cc
+**/generated_plugin_registrant.h
+**/generated_plugins.cmake
+**/GeneratedPluginRegistrant.swift
+**/GeneratedPluginRegistrant.m
+**/GeneratedPluginRegistrant.h
 
 # Symbolication related
 app.*.symbols

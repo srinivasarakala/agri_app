@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../main.dart';
+import '../shell/app_shell.dart';
+import '../subdealer/subdealer_shell.dart';
+import '../../core/cart/cart_state.dart';
 
 class OtpPage extends StatefulWidget {
   final String phone;
@@ -19,7 +22,14 @@ class _OtpPageState extends State<OtpPage> {
     setState(() { loading = true; error = null; });
     try {
       await appAuth.verifyOtp(widget.phone, otpCtrl.text.trim());
+      // Load user's cart and favorites
+      print('OTP verified, loading cart for ${widget.phone}');
+      await loadUserCart(widget.phone);
+      print('Cart loaded, navigating to /app');
       if (!mounted) return;
+      // Reset to home page tab for both shells
+      appTabIndex.value = 0;
+      subdealerTabIndex.value = 0;
       context.go('/app');
     } catch (_) {
       setState(() => error = 'Invalid OTP');

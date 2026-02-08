@@ -62,7 +62,7 @@ class _SdHomePageState extends State<SdHomePage> {
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 18),
           children: [
             _BrandHeader(
-              title: "Pavan HI-TECH Agro",
+              title: "HI-TECH Agro",
               subtitle: "B2B Inventory • Ordering • Tracking",
               onBell: () {},
             ),

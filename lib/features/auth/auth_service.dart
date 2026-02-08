@@ -30,6 +30,7 @@ class AuthService {
       refresh: refresh,
       role: role,
       subdealerId: subdealerId,
+      phone: phone,
     );
 
     return Session(
@@ -37,6 +38,7 @@ class AuthService {
       refreshToken: refresh,
       role: role,
       subdealerId: subdealerId,
+      phone: phone,
     );
   }
 
@@ -45,6 +47,7 @@ class AuthService {
     final access = data['access'];
     final refresh = data['refresh'];
     final role = data['role'];
+    final phone = data['phone'];
 
     if (access == null || refresh == null || role == null) return null;
 
@@ -55,6 +58,7 @@ class AuthService {
       refreshToken: refresh,
       role: role,
       subdealerId: subdealerId,
+      phone: phone,
     );
   }
 

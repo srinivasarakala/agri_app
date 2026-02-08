@@ -49,6 +49,58 @@ class _SdMyOrdersPageState extends State<SdMyOrdersPage> {
     }
   }
 
+  Widget _buildDeliveryStatusChip(String deliveryStatus) {
+    Color color;
+    IconData icon;
+    String label;
+
+    switch (deliveryStatus) {
+      case 'PENDING_DELIVERY':
+        color = Colors.orange;
+        icon = Icons.pending;
+        label = 'Pending Delivery';
+        break;
+      case 'IN_TRANSIT':
+        color = Colors.blue;
+        icon = Icons.local_shipping;
+        label = 'In Transit';
+        break;
+      case 'DELIVERED':
+        color = Colors.green;
+        icon = Icons.check_circle;
+        label = 'Delivered';
+        break;
+      default:
+        color = Colors.grey;
+        icon = Icons.info;
+        label = 'N/A';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,94 +108,149 @@ class _SdMyOrdersPageState extends State<SdMyOrdersPage> {
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : error != null
-              ? Center(child: Text(error!))
-              : orders.isEmpty
-                  ? const Center(child: Text("No orders yet"))
-                  : RefreshIndicator(
-                      onRefresh: load,
-                      child: ListView.builder(
-                        itemCount: orders.length,
-                        itemBuilder: (context, index) {
-                          final o = orders[index];
-                          final totalReq = o.items.fold<double>(
-                              0, (sum, it) => sum + it.requestedQty);
-                          final totalAppr = o.items.fold<double>(
-                              0, (sum, it) => sum + it.approvedQty);
+          ? Center(child: Text(error!))
+          : orders.isEmpty
+          ? const Center(child: Text("No orders yet"))
+          : RefreshIndicator(
+              onRefresh: load,
+              child: ListView.builder(
+                itemCount: orders.length,
+                itemBuilder: (context, index) {
+                  final o = orders[index];
+                  final totalReq = o.items.fold<double>(
+                    0,
+                    (sum, it) => sum + it.requestedQty,
+                  );
+                  final totalAppr = o.items.fold<double>(
+                    0,
+                    (sum, it) => sum + it.approvedQty,
+                  );
 
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
-                            child: ExpansionTile(
-                              title: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      "Order #${o.id}",
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: _statusColor(o.status)
-                                          .withOpacity(0.15),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      o.status,
-                                      style: TextStyle(
-                                        color: _statusColor(o.status),
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    child: ExpansionTile(
+                      title: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              "Order #${o.id}",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
                               ),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 6),
-                                child: Text(
-                                  "Items: ${o.items.length}  •  Requested: $totalReq  •  Approved: $totalAppr",
-                                ),
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _statusColor(o.status).withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              o.status,
+                              style: TextStyle(
+                                color: _statusColor(o.status),
+                                fontWeight: FontWeight.w700,
                               ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Items: ${o.items.length}  •  Requested: $totalReq  •  Approved: $totalAppr",
+                            ),
+                            const SizedBox(height: 6),
+                            _buildDeliveryStatusChip(o.deliveryStatus),
+                          ],
+                        ),
+                      ),
+                      children: [
+                        const Divider(height: 1),
+                        for (final it in o.items)
+                          ListTile(
+                            title: Text(it.productName),
+                            subtitle: Text("${it.sku} • ${it.unit}"),
+                            trailing: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                const Divider(height: 1),
-                                for (final it in o.items)
-                                  ListTile(
-                                    title: Text(it.productName),
-                                    subtitle: Text("${it.sku} • ${it.unit}"),
-                                    trailing: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Text("Req: ${it.requestedQty}"),
-                                        Text(
-                                          "Appr: ${it.approvedQty}",
-                                          style: TextStyle(
-                                            color: it.approvedQty > 0
-                                                ? Colors.green
-                                                : Colors.blueGrey,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                Text("Req: ${it.requestedQty}"),
+                                Text(
+                                  "Appr: ${it.approvedQty}",
+                                  style: TextStyle(
+                                    color: it.approvedQty > 0
+                                        ? Colors.green
+                                        : Colors.blueGrey,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                if ((o.note ?? "").trim().isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                        16, 0, 16, 16),
-                                    child: Text("Note: ${o.note}"),
-                                  ),
+                                ),
                               ],
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        if (o.shippedAt != null || o.deliveredAt != null)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Divider(height: 1),
+                                const SizedBox(height: 8),
+                                if (o.shippedAt != null)
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.local_shipping,
+                                        size: 16,
+                                        color: Colors.blue,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        "Shipped: ${o.shippedAt!.toLocal().toString().substring(0, 16)}",
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                if (o.deliveredAt != null) ...[
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.check_circle,
+                                        size: 16,
+                                        color: Colors.green,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        "Delivered: ${o.deliveredAt!.toLocal().toString().substring(0, 16)}",
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        if ((o.note ?? "").trim().isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            child: Text("Note: ${o.note}"),
+                          ),
+                      ],
                     ),
+                  );
+                },
+              ),
+            ),
     );
   }
 }

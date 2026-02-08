@@ -7,30 +7,43 @@ import 'features/catalog/catalog_service.dart';
 import 'features/orders/orders_service.dart';
 import 'core/state/catalog_search_bus.dart';
 import 'core/auth/session.dart';
+import 'core/cart/cart_state.dart';
+import 'core/cart/cart_service.dart';
+import 'features/profile/profile_service.dart';
+import 'features/finance/ledger_service.dart';
+import 'features/stock/stock_history_service.dart';
 
 Session? currentSession;
-
-
-
 
 late final OrdersService ordersApi;
 late final AuthService appAuth;
 late final CatalogService catalogApi;
+late final CartService cartApi;
+late final ProfileService profileApi;
+late final LedgerService ledgerApi;
+late final StockHistoryService stockHistoryApi;
 late final CatalogSearchBus catalogSearchBus;
 
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
 
-void main() {
+  // Initialize SharedPreferences for cart storage
+  await initCartStorage();
+
   final storage = TokenStorage();
   final client = DioClient(
     baseUrl: 'http://10.0.2.2:8000', // emulator -> PC
     storage: storage,
   );
-  
+
   catalogSearchBus = CatalogSearchBus();
   appAuth = AuthService(client: client, storage: storage);
   catalogApi = CatalogService(client);
+  cartApi = CartService(client);
+  profileApi = ProfileService(client);
+  ledgerApi = LedgerService(client);
+  stockHistoryApi = StockHistoryService(client);
   ordersApi = OrdersService(client);
-
 
   runApp(const AgriApp());
 }
@@ -41,21 +54,20 @@ class AgriApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-  title: 'Agri B2B',
+      title: 'Agri B2B',
 
-  theme: ThemeData(
-    useMaterial3: false, // fixes many light color issues
-    primarySwatch: Colors.green,
-    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      backgroundColor: Colors.white,
-      selectedItemColor: Colors.green,
-      unselectedItemColor: Colors.grey,
-      showUnselectedLabels: true,
-    ),
-  ),
+      theme: ThemeData(
+        useMaterial3: false, // fixes many light color issues
+        primarySwatch: Colors.green,
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: Colors.white,
+          selectedItemColor: Colors.green,
+          unselectedItemColor: Colors.grey,
+          showUnselectedLabels: true,
+        ),
+      ),
 
-  routerConfig: buildRouter(),
-);
-
+      routerConfig: buildRouter(),
+    );
   }
 }
