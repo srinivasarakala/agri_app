@@ -378,7 +378,24 @@ class _FavoritesPageState extends State<_FavoritesPage> {
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
-              const TopBanner(subtitle: "Favorites"),
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.green.shade800, Colors.green.shade500],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Text(
+                  "Favorites (${favoriteProducts.length})",
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
               const SizedBox(height: 14),
 
               if (loading)

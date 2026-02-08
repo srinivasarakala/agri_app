@@ -23,7 +23,24 @@ class YouPage extends StatelessWidget {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        TopBanner(subtitle: "You"),
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.green.shade800, Colors.green.shade500],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: const Text(
+            "Menu",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
 
         const SizedBox(height: 10),
 
