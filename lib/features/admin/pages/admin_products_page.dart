@@ -16,12 +16,22 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
   bool loading = true;
   String? error;
   List<Product> items = [];
+  List<Product> filteredItems = [];
   List<Category> categories = [];
+
+  final searchCtrl = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     load();
+    searchCtrl.addListener(_applySearch);
+  }
+
+  @override
+  void dispose() {
+    searchCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> load() async {
@@ -32,11 +42,26 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
     try {
       items = await catalogApi.listProducts();
       categories = await catalogApi.listCategories();
+      filteredItems = items;
     } catch (e) {
       error = "Failed to load data: $e";
     } finally {
       setState(() => loading = false);
     }
+  }
+
+  void _applySearch() {
+    final query = searchCtrl.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        filteredItems = items;
+      } else {
+        filteredItems = items.where((p) {
+          return p.name.toLowerCase().contains(query) ||
+              p.sku.toLowerCase().contains(query);
+        }).toList();
+      }
+    });
   }
 
   Future<void> _openProductForm({Product? product}) async {
@@ -95,7 +120,7 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Manage Products${items.isNotEmpty ? " (${items.length})" : ""}',
+          'Manage Products${filteredItems.isNotEmpty ? " (${filteredItems.length})" : ""}',
         ),
         actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: load)],
       ),
@@ -112,45 +137,88 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                 ],
               ),
             )
-          : RefreshIndicator(
-              onRefresh: load,
-              child: ListView.builder(
-                itemCount: items.length,
-                itemBuilder: (context, i) {
-                  final p = items[i];
-                  return ListTile(
-                    leading: p.imageUrl != null && p.imageUrl!.isNotEmpty
-                        ? Image.network(
-                            p.imageUrl!,
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.image),
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: TextField(
+                    controller: searchCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Search by name or SKU...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: searchCtrl.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () => searchCtrl.clear(),
+                            )
+                          : null,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: load,
+                    child: filteredItems.isEmpty
+                        ? Center(
+                            child: Text(
+                              searchCtrl.text.isEmpty
+                                  ? 'No products'
+                                  : 'No products match search',
+                              style: const TextStyle(color: Colors.grey),
+                            ),
                           )
-                        : const Icon(Icons.image),
-                    title: Text(p.name),
-                    subtitle: Text(
-                      '${p.sku} • ₹${p.sellingPrice.toStringAsFixed(2)} • Stock: ${p.globalStock.toStringAsFixed(2)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () => _openProductForm(product: p),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _deleteProduct(p),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                        : ListView.builder(
+                            itemCount: filteredItems.length,
+                            itemBuilder: (context, i) {
+                              final p = filteredItems[i];
+                              return ListTile(
+                                leading:
+                                    p.imageUrl != null && p.imageUrl!.isNotEmpty
+                                    ? Image.network(
+                                        p.imageUrl!,
+                                        width: 50,
+                                        height: 50,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) =>
+                                            const Icon(Icons.image),
+                                      )
+                                    : const Icon(Icons.image),
+                                title: Text(p.name),
+                                subtitle: Text(
+                                  '${p.sku} • ₹${p.sellingPrice.toStringAsFixed(2)} • Stock: ${p.globalStock.toStringAsFixed(2)}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit),
+                                      onPressed: () =>
+                                          _openProductForm(product: p),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.delete,
+                                        color: Colors.red,
+                                      ),
+                                      onPressed: () => _deleteProduct(p),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ),
+              ],
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openProductForm(),
