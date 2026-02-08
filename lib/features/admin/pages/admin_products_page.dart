@@ -20,6 +20,9 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
   List<Category> categories = [];
 
   final searchCtrl = TextEditingController();
+  String? selectedBrand;
+  int? selectedCategoryId;
+  String selectedStockFilter = 'All'; // All, In Stock, Low Stock, Out of Stock
 
   @override
   void initState() {
@@ -53,15 +56,58 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
   void _applySearch() {
     final query = searchCtrl.text.toLowerCase();
     setState(() {
-      if (query.isEmpty) {
-        filteredItems = items;
-      } else {
-        filteredItems = items.where((p) {
-          return p.name.toLowerCase().contains(query) ||
-              p.sku.toLowerCase().contains(query);
-        }).toList();
-      }
+      filteredItems = items.where((p) {
+        // Search filter
+        if (query.isNotEmpty) {
+          if (!p.name.toLowerCase().contains(query) &&
+              !p.sku.toLowerCase().contains(query)) {
+            return false;
+          }
+        }
+
+        // Brand filter
+        if (selectedBrand != null && p.brand != selectedBrand) {
+          return false;
+        }
+
+        // Category filter
+        if (selectedCategoryId != null && p.categoryId != selectedCategoryId) {
+          return false;
+        }
+
+        // Stock filter
+        if (selectedStockFilter == 'In Stock' && p.globalStock <= 0) {
+          return false;
+        } else if (selectedStockFilter == 'Low Stock' &&
+            (p.globalStock <= 0 || p.globalStock > 10)) {
+          return false;
+        } else if (selectedStockFilter == 'Out of Stock' && p.globalStock > 0) {
+          return false;
+        }
+
+        return true;
+      }).toList();
     });
+  }
+
+  List<String> _getUniqueBrands() {
+    final brands = items
+        .where((p) => p.brand != null && p.brand!.isNotEmpty)
+        .map((p) => p.brand!)
+        .toSet()
+        .toList();
+    brands.sort();
+    return brands;
+  }
+
+  void _clearFilters() {
+    setState(() {
+      searchCtrl.clear();
+      selectedBrand = null;
+      selectedCategoryId = null;
+      selectedStockFilter = 'All';
+    });
+    _applySearch();
   }
 
   Future<void> _openProductForm({Product? product}) async {
@@ -159,6 +205,108 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                         horizontal: 16,
                         vertical: 12,
                       ),
+                    ),
+                  ),
+                ),
+                // Quick Filters
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        // Brand Filter
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: DropdownButton<String?>(
+                            value: selectedBrand,
+                            hint: const Text('Brand'),
+                            underline: const SizedBox(),
+                            items: [
+                              const DropdownMenuItem(
+                                value: null,
+                                child: Text('All Brands'),
+                              ),
+                              ..._getUniqueBrands().map(
+                                (brand) => DropdownMenuItem(
+                                  value: brand,
+                                  child: Text(brand),
+                                ),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              setState(() => selectedBrand = value);
+                              _applySearch();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Category Filter
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: DropdownButton<int?>(
+                            value: selectedCategoryId,
+                            hint: const Text('Category'),
+                            underline: const SizedBox(),
+                            items: [
+                              const DropdownMenuItem(
+                                value: null,
+                                child: Text('All Categories'),
+                              ),
+                              ...categories.map(
+                                (cat) => DropdownMenuItem(
+                                  value: cat.id,
+                                  child: Text(cat.name),
+                                ),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              setState(() => selectedCategoryId = value);
+                              _applySearch();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Stock Status Filter
+                        ...['All', 'In Stock', 'Low Stock', 'Out of Stock'].map(
+                          (status) => Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: FilterChip(
+                              label: Text(status),
+                              selected: selectedStockFilter == status,
+                              onSelected: (selected) {
+                                setState(() => selectedStockFilter = status);
+                                _applySearch();
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Clear Filters Button
+                        if (selectedBrand != null ||
+                            selectedCategoryId != null ||
+                            selectedStockFilter != 'All' ||
+                            searchCtrl.text.isNotEmpty)
+                          TextButton.icon(
+                            onPressed: _clearFilters,
+                            icon: const Icon(Icons.clear_all, size: 18),
+                            label: const Text('Clear'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.red,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),

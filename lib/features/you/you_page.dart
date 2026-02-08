@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/widgets/top_banner.dart';
-import '../../core/widgets/logout_button.dart';
+import '../../core/cart/cart_state.dart';
 import '../admin/pages/admin_products_page.dart';
 import '../admin/pages/admin_product_videos_page.dart';
 import '../admin/pages/admin_categories_page.dart';
@@ -15,6 +16,37 @@ import '../../main.dart';
 class YouPage extends StatelessWidget {
   final String role;
   const YouPage({super.key, required this.role});
+
+  Future<void> _logout(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Logout"),
+        content: const Text("Do you want to logout?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Logout"),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+
+    // Clear user session (clears in-memory cart/favorites without saving)
+    print('Logging out, clearing session');
+    clearUserSession();
+    print('Session cleared, logging out auth');
+    await appAuth.logout(); // Clear token storage
+    print('Auth logged out, navigating to login');
+    if (!context.mounted) return;
+    context.go('/login');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -153,13 +185,14 @@ class YouPage extends StatelessWidget {
 
                 const Divider(height: 1),
 
-                // ✅ Logout inside You
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(14, 8, 14, 14),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: LogoutButton(),
+                // ✅ Logout button
+                ListTile(
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text(
+                    "Logout",
+                    style: TextStyle(color: Colors.red),
                   ),
+                  onTap: () => _logout(context),
                 ),
               ],
             ),
