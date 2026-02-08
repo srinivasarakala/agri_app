@@ -41,10 +41,7 @@ class _AdminProductVideosPageState extends State<AdminProductVideosPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => VideoFormSheet(
-        video: video,
-        onSave: load,
-      ),
+      builder: (_) => VideoFormSheet(video: video, onSave: load),
     );
   }
 
@@ -53,7 +50,9 @@ class _AdminProductVideosPageState extends State<AdminProductVideosPage> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Delete Video?'),
-        content: Text('Permanently delete "${v.title}"? This cannot be undone.'),
+        content: Text(
+          'Permanently delete "${v.title}"? This cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -72,15 +71,15 @@ class _AdminProductVideosPageState extends State<AdminProductVideosPage> {
     try {
       await catalogApi.adminDeleteProductVideo(v.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Video deleted')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Video deleted')));
       load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -90,66 +89,102 @@ class _AdminProductVideosPageState extends State<AdminProductVideosPage> {
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(error!, style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: load,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : items.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No videos yet.\nTap + to add one.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: load,
-                      child: ListView.builder(
-                        itemCount: items.length,
-                        itemBuilder: (context, i) {
-                          final v = items[i];
-                          return ListTile(
-                            leading: Image.network(
-                              v.thumbnailUrl,
-                              width: 80,
-                              height: 50,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  const Icon(Icons.video_library),
-                            ),
-                            title: Text(v.title),
-                            subtitle: Text(
-                              'Order: ${v.order} • ${v.isActive ? "Active" : "Inactive"}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit),
-                                  onPressed: () => _openVideoForm(video: v),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete,
-                                      color: Colors.red),
-                                  onPressed: () => _deleteVideo(v),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(error!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(onPressed: load, child: const Text('Retry')),
+                ],
+              ),
+            )
+          : items.isEmpty
+          ? const Center(
+              child: Text(
+                'No videos yet.\nTap + to add one.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: load,
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.green.shade800, Colors.green.shade500],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
                     ),
+                    child: Row(
+                      children: [
+                        const Text(
+                          "Product Videos",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          "${items.length}",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: items.length,
+                      itemBuilder: (context, i) {
+                        final v = items[i];
+                        return ListTile(
+                          leading: Image.network(
+                            v.thumbnailUrl,
+                            width: 80,
+                            height: 50,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                const Icon(Icons.video_library),
+                          ),
+                          title: Text(v.title),
+                          subtitle: Text(
+                            'Order: ${v.order} • ${v.isActive ? "Active" : "Inactive"}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () => _openVideoForm(video: v),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () => _deleteVideo(v),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openVideoForm(),
         child: const Icon(Icons.add),
@@ -162,11 +197,7 @@ class VideoFormSheet extends StatefulWidget {
   final ProductVideo? video;
   final VoidCallback onSave;
 
-  const VideoFormSheet({
-    super.key,
-    this.video,
-    required this.onSave,
-  });
+  const VideoFormSheet({super.key, this.video, required this.onSave});
 
   @override
   State<VideoFormSheet> createState() => _VideoFormSheetState();
@@ -185,12 +216,15 @@ class _VideoFormSheetState extends State<VideoFormSheet> {
   void initState() {
     super.initState();
     titleCtrl = TextEditingController(text: widget.video?.title ?? '');
-    youtubeUrlCtrl =
-        TextEditingController(text: widget.video?.youtubeUrl ?? '');
-    descriptionCtrl =
-        TextEditingController(text: widget.video?.description ?? '');
+    youtubeUrlCtrl = TextEditingController(
+      text: widget.video?.youtubeUrl ?? '',
+    );
+    descriptionCtrl = TextEditingController(
+      text: widget.video?.description ?? '',
+    );
     orderCtrl = TextEditingController(
-        text: widget.video?.order.toString() ?? '0');
+      text: widget.video?.order.toString() ?? '0',
+    );
     isActive = widget.video?.isActive ?? true;
   }
 
@@ -216,7 +250,9 @@ class _VideoFormSheetState extends State<VideoFormSheet> {
       final payload = {
         'title': titleCtrl.text,
         'youtube_url': youtubeUrlCtrl.text,
-        'description': descriptionCtrl.text.isEmpty ? null : descriptionCtrl.text,
+        'description': descriptionCtrl.text.isEmpty
+            ? null
+            : descriptionCtrl.text,
         'order': int.tryParse(orderCtrl.text) ?? 0,
         'is_active': isActive,
       };
@@ -232,9 +268,9 @@ class _VideoFormSheetState extends State<VideoFormSheet> {
       widget.onSave();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       setState(() => saving = false);
     }

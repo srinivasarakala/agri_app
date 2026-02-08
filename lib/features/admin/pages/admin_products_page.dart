@@ -78,15 +78,15 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
     try {
       await catalogApi.adminDeleteProduct(p.id);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product deleted')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Product deleted')));
       load();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -96,60 +96,96 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(error!, style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: load,
-                        child: const Text('Retry'),
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(error!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(onPressed: load, child: const Text('Retry')),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: load,
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.green.shade800, Colors.green.shade500],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: load,
-                  child: ListView.builder(
-                    itemCount: items.length,
-                    itemBuilder: (context, i) {
-                      final p = items[i];
-                      return ListTile(
-                        leading: p.imageUrl != null && p.imageUrl!.isNotEmpty
-                            ? Image.network(
-                                p.imageUrl!,
-                                width: 50,
-                                height: 50,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    const Icon(Icons.image),
-                              )
-                            : const Icon(Icons.image),
-                        title: Text(p.name),
-                        subtitle: Text(
-                          '${p.sku} • ₹${p.sellingPrice.toStringAsFixed(2)} • Stock: ${p.globalStock.toStringAsFixed(2)}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                    ),
+                    child: Row(
+                      children: [
+                        const Text(
+                          "Manage Products",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () => _openProductForm(product: p),
-                            ),
-                            IconButton(
-                              icon:
-                                  const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deleteProduct(p),
-                            ),
-                          ],
+                        const Spacer(),
+                        Text(
+                          "${items.length}",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      );
-                    },
+                      ],
+                    ),
                   ),
-                ),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: items.length,
+                      itemBuilder: (context, i) {
+                        final p = items[i];
+                        return ListTile(
+                          leading: p.imageUrl != null && p.imageUrl!.isNotEmpty
+                              ? Image.network(
+                                  p.imageUrl!,
+                                  width: 50,
+                                  height: 50,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      const Icon(Icons.image),
+                                )
+                              : const Icon(Icons.image),
+                          title: Text(p.name),
+                          subtitle: Text(
+                            '${p.sku} • ₹${p.sellingPrice.toStringAsFixed(2)} • Stock: ${p.globalStock.toStringAsFixed(2)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () => _openProductForm(product: p),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () => _deleteProduct(p),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _openProductForm(),
         child: const Icon(Icons.add),
@@ -197,18 +233,23 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
     super.initState();
     skuCtrl = TextEditingController(text: widget.product?.sku ?? '');
     nameCtrl = TextEditingController(text: widget.product?.name ?? '');
-    descriptionCtrl =
-        TextEditingController(text: widget.product?.description ?? '');
+    descriptionCtrl = TextEditingController(
+      text: widget.product?.description ?? '',
+    );
     brandCtrl = TextEditingController(text: widget.product?.brand ?? '');
     unitCtrl = TextEditingController(text: widget.product?.unit ?? 'pcs');
     mrpCtrl = TextEditingController(
-        text: widget.product?.mrp.toStringAsFixed(2) ?? '');
+      text: widget.product?.mrp.toStringAsFixed(2) ?? '',
+    );
     priceCtrl = TextEditingController(
-        text: widget.product?.sellingPrice.toStringAsFixed(2) ?? '');
+      text: widget.product?.sellingPrice.toStringAsFixed(2) ?? '',
+    );
     stockCtrl = TextEditingController(
-        text: widget.product?.globalStock.toStringAsFixed(2) ?? '');
+      text: widget.product?.globalStock.toStringAsFixed(2) ?? '',
+    );
     minQtyCtrl = TextEditingController(
-        text: widget.product?.minQty.toStringAsFixed(0) ?? '1');
+      text: widget.product?.minQty.toStringAsFixed(0) ?? '1',
+    );
     imageUrlCtrl = TextEditingController(text: widget.product?.imageUrl ?? '');
     isActive = widget.product?.isActive ?? true;
 
@@ -245,17 +286,17 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking image: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
     }
   }
 
   Future<void> _save() async {
     if (nameCtrl.text.isEmpty || priceCtrl.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name and Price required')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Name and Price required')));
       return;
     }
 
@@ -282,7 +323,10 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
       if (widget.product == null) {
         createdOrUpdatedProduct = await catalogApi.adminCreateProduct(payload);
       } else {
-        createdOrUpdatedProduct = await catalogApi.adminUpdateProduct(widget.product!.id, payload);
+        createdOrUpdatedProduct = await catalogApi.adminUpdateProduct(
+          widget.product!.id,
+          payload,
+        );
       }
 
       // Upload image if one was picked
@@ -298,9 +342,9 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
       widget.onSave();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       setState(() => saving = false);
     }
@@ -387,13 +431,14 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                       border: OutlineInputBorder(),
                     ),
                     items: widget.categories
-                        .map((c) => DropdownMenuItem(
-                              value: c,
-                              child: Text(c.name),
-                            ))
+                        .map(
+                          (c) =>
+                              DropdownMenuItem(value: c, child: Text(c.name)),
+                        )
                         .toList(),
-                    onChanged: (v) =>
-                        setState(() => selectedCategory = v ?? selectedCategory),
+                    onChanged: (v) => setState(
+                      () => selectedCategory = v ?? selectedCategory,
+                    ),
                   ),
                 ),
               ],
@@ -485,16 +530,21 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                         TextButton.icon(
                           onPressed: () => setState(() => pickedImage = null),
                           icon: const Icon(Icons.delete, color: Colors.red),
-                          label: const Text('Remove', style: TextStyle(color: Colors.red)),
+                          label: const Text(
+                            'Remove',
+                            style: TextStyle(color: Colors.red),
+                          ),
                         ),
                       ],
                     ),
-                  ] else if (widget.product?.imageUrl != null && widget.product!.imageUrl!.isNotEmpty) ...[
+                  ] else if (widget.product?.imageUrl != null &&
+                      widget.product!.imageUrl!.isNotEmpty) ...[
                     Image.network(
                       widget.product!.imageUrl!,
                       height: 150,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.image, size: 50),
+                      errorBuilder: (_, __, ___) =>
+                          const Icon(Icons.image, size: 50),
                     ),
                     const SizedBox(height: 8),
                     OutlinedButton.icon(
@@ -543,4 +593,3 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
     );
   }
 }
-
