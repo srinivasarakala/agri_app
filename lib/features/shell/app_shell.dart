@@ -157,11 +157,8 @@ class _CartPageState extends State<_CartPage> {
         });
 
         return ListView(
-          padding: EdgeInsets.zero,
+          padding: const EdgeInsets.only(top: 12),
           children: [
-            const TopBanner(subtitle: "Cart"),
-            const SizedBox(height: 12),
-
             if (loading)
               const Padding(
                 padding: EdgeInsets.all(18),
