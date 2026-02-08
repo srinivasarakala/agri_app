@@ -3,12 +3,13 @@ import '../../../main.dart';
 import '../../catalog/product.dart';
 import '../../../core/cart/cart_state.dart';
 import '../../shell/app_shell.dart';
-import '../../../core/utils/profile_validator.dart';
+import '../../orders/checkout_page.dart';
 
 class SdCatalogPage extends StatefulWidget {
   final String initialQuery;
   final int? categoryId;
   final String? tag;
+
   const SdCatalogPage({
     super.key,
     this.initialQuery = "",
@@ -92,37 +93,11 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
   Future<void> placeOrder() async {
     if (cartQty.value.isEmpty) return;
 
-    try {
-      // Check profile completeness before placing order
-      final profile = await profileApi.getProfile();
-
-      if (!ProfileValidator.isProfileComplete(profile)) {
-        final missing = ProfileValidator.getMissingFields(profile);
-        if (mounted) {
-          ProfileValidator.showIncompleteProfileDialog(context, missing);
-        }
-        return;
-      }
-
-      // Profile is complete, proceed with order
-      final items = cartQty.value.entries
-          .map((e) => {"product_id": e.key, "qty": e.value})
-          .toList();
-
-      await ordersApi.createOrder(items: items);
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Order placed successfully")),
-      );
-
-      cartClear();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Failed to place order: $e")));
-    }
+    // Navigate to checkout page
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const CheckoutPage()),
+    );
   }
 
   void openCartSheet() {

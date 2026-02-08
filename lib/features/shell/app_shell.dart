@@ -6,7 +6,7 @@ import '../../core/cart/cart_state.dart';
 import '../catalog/product.dart';
 import '../catalog/widgets/product_detail_dialog.dart';
 import '../../main.dart'; // for catalogApi
-import '../../core/utils/profile_validator.dart';
+import '../orders/checkout_page.dart';
 
 final appTabIndex = ValueNotifier<int>(0);
 
@@ -286,46 +286,13 @@ class _CartPageState extends State<_CartPage> {
                     const SizedBox(height: 12),
                     ElevatedButton(
                       onPressed: () async {
-                        // Check profile completeness before placing order
-                        try {
-                          final profile = await profileApi.getProfile();
-
-                          if (!ProfileValidator.isProfileComplete(profile)) {
-                            final missing = ProfileValidator.getMissingFields(
-                              profile,
-                            );
-                            if (mounted) {
-                              ProfileValidator.showIncompleteProfileDialog(
-                                context,
-                                missing,
-                              );
-                            }
-                            return;
-                          }
-
-                          // Profile is complete, proceed with order
-                          final items = m.entries
-                              .map((e) => {"product_id": e.key, "qty": e.value})
-                              .toList();
-                          await ordersApi.createOrder(items: items);
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("✓ Order placed successfully"),
-                              ),
-                            );
-                            cartClear();
-                            appTabIndex.value = 0; // Go to Home
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text("Failed to place order: $e"),
-                              ),
-                            );
-                          }
-                        }
+                        // Navigate to checkout page
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const CheckoutPage(),
+                          ),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
