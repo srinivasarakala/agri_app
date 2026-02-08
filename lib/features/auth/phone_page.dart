@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../main.dart'; // to access app services
+import '../shell/app_shell.dart'; // for appTabIndex
 
 class PhonePage extends StatefulWidget {
   const PhonePage({super.key});
@@ -15,14 +16,29 @@ class _PhonePageState extends State<PhonePage> {
   String? error;
 
   Future<void> sendOtp() async {
-    setState(() { loading = true; error = null; });
+    setState(() {
+      loading = true;
+      error = null;
+    });
     try {
       final phone = phoneCtrl.text.trim();
-      await appAuth.sendOtp(phone);
+
+      // OTP Verification Disabled - Direct Login
+      // Skip sending OTP and directly verify with dummy OTP
+      await appAuth.verifyOtp(
+        phone,
+        '000000',
+      ); // Any OTP works since backend bypasses check
+
       if (!mounted) return;
-      context.go('/otp', extra: {'phone': phone});
-    } catch (_) {
-      setState(() => error = 'Failed to send OTP');
+
+      // Reset tab to Home (index 0)
+      appTabIndex.value = 0;
+
+      // Navigate to home after successful login
+      context.go('/app');
+    } catch (e) {
+      setState(() => error = 'Login failed: ${e.toString()}');
     } finally {
       setState(() => loading = false);
     }
@@ -42,14 +58,19 @@ class _PhonePageState extends State<PhonePage> {
               decoration: const InputDecoration(labelText: 'Phone number'),
             ),
             const SizedBox(height: 12),
-            if (error != null) Text(error!, style: const TextStyle(color: Colors.red)),
+            if (error != null)
+              Text(error!, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: loading ? null : sendOtp,
               child: loading
-                  ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Send OTP'),
-            )
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Login'),
+            ),
           ],
         ),
       ),

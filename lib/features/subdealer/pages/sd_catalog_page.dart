@@ -1,17 +1,21 @@
-
 import 'package:flutter/material.dart';
 import '../../../main.dart';
 import '../../catalog/product.dart';
 import '../../../core/cart/cart_state.dart';
 import '../../shell/app_shell.dart';
-
+import '../../../core/utils/profile_validator.dart';
 
 class SdCatalogPage extends StatefulWidget {
   final String initialQuery;
   final int? categoryId;
   final String? tag;
-  const SdCatalogPage({super.key, this.initialQuery = "", this.categoryId, this.tag});
-  
+  const SdCatalogPage({
+    super.key,
+    this.initialQuery = "",
+    this.categoryId,
+    this.tag,
+  });
+
   @override
   State<SdCatalogPage> createState() => _SdCatalogPageState();
 }
@@ -60,23 +64,25 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
     shown = all.where((p) {
       // Filter by search query
       if (q.isNotEmpty) {
-        if (!p.name.toLowerCase().contains(q) && !p.sku.toLowerCase().contains(q)) {
+        if (!p.name.toLowerCase().contains(q) &&
+            !p.sku.toLowerCase().contains(q)) {
           return false;
         }
       }
-      
+
       // Filter by category if provided
       if (widget.categoryId != null && p.categoryId != widget.categoryId) {
         return false;
       }
-      
+
       // Filter by tag if provided
       if (widget.tag != null && widget.tag!.isNotEmpty) {
-        if (p.tags == null || !p.tags!.toLowerCase().contains(widget.tag!.toLowerCase())) {
+        if (p.tags == null ||
+            !p.tags!.toLowerCase().contains(widget.tag!.toLowerCase())) {
           return false;
         }
       }
-      
+
       return true;
     }).toList();
 
@@ -87,6 +93,18 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
     if (cartQty.value.isEmpty) return;
 
     try {
+      // Check profile completeness before placing order
+      final profile = await profileApi.getProfile();
+
+      if (!ProfileValidator.isProfileComplete(profile)) {
+        final missing = ProfileValidator.getMissingFields(profile);
+        if (mounted) {
+          ProfileValidator.showIncompleteProfileDialog(context, missing);
+        }
+        return;
+      }
+
+      // Profile is complete, proceed with order
       final items = cartQty.value.entries
           .map((e) => {"product_id": e.key, "qty": e.value})
           .toList();
@@ -101,12 +119,11 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
       cartClear();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to place order: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to place order: $e")));
     }
   }
-
 
   void openCartSheet() {
     showModalBottomSheet(
@@ -119,7 +136,9 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
         return ValueListenableBuilder<Map<int, int>>(
           valueListenable: cartQty,
           builder: (context, cartMap, __) {
-            final cartItems = all.where((p) => cartMap.containsKey(p.id)).toList();
+            final cartItems = all
+                .where((p) => cartMap.containsKey(p.id))
+                .toList();
             final total = cartItems.fold<double>(0, (sum, p) {
               final qty = cartMap[p.id] ?? 0;
               return sum + (p.sellingPrice * qty);
@@ -142,8 +161,17 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("Cart", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
-                      Text("${cartItems.length} item(s)", style: TextStyle(color: Colors.grey.shade600)),
+                      const Text(
+                        "Cart",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        "${cartItems.length} item(s)",
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -155,9 +183,12 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
                         final p = cartItems[i];
                         final currentQty = cartMap[p.id] ?? 0;
                         final minQty = p.minQty.toInt();
-                        
+
                         return Card(
-                          margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 0,
+                            vertical: 4,
+                          ),
                           child: Padding(
                             padding: const EdgeInsets.all(12),
                             child: Row(
@@ -165,16 +196,30 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                                      Text(
+                                        p.name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
                                       const SizedBox(height: 4),
-                                      Text("₹${p.sellingPrice} × $currentQty = ₹${(p.sellingPrice * currentQty).toStringAsFixed(2)}", style: const TextStyle(fontSize: 13)),
+                                      Text(
+                                        "₹${p.sellingPrice} × $currentQty = ₹${(p.sellingPrice * currentQty).toStringAsFixed(2)}",
+                                        style: const TextStyle(fontSize: 13),
+                                      ),
                                       if (minQty > 1) ...[
                                         const SizedBox(height: 4),
                                         Text(
                                           "Min Qty: $minQty",
-                                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.orange.shade700),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.orange.shade700,
+                                          ),
                                         ),
                                       ],
                                     ],
@@ -186,21 +231,38 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         IconButton(
-                                          icon: const Icon(Icons.remove_circle_outline, size: 20),
-                                          onPressed: currentQty > 0 ? () {
-                                            final newQty = currentQty - minQty;
-                                            if (newQty <= 0) {
-                                              cartSetQty(p.id, 0);
-                                            } else {
-                                              cartSetQty(p.id, newQty);
-                                            }
-                                          } : null,
+                                          icon: const Icon(
+                                            Icons.remove_circle_outline,
+                                            size: 20,
+                                          ),
+                                          onPressed: currentQty > 0
+                                              ? () {
+                                                  final newQty =
+                                                      currentQty - minQty;
+                                                  if (newQty <= 0) {
+                                                    cartSetQty(p.id, 0);
+                                                  } else {
+                                                    cartSetQty(p.id, newQty);
+                                                  }
+                                                }
+                                              : null,
                                         ),
-                                        Text("$currentQty", style: const TextStyle(fontWeight: FontWeight.w800)),
+                                        Text(
+                                          "$currentQty",
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
                                         IconButton(
-                                          icon: const Icon(Icons.add_circle_outline, size: 20),
+                                          icon: const Icon(
+                                            Icons.add_circle_outline,
+                                            size: 20,
+                                          ),
                                           onPressed: () {
-                                            cartSetQty(p.id, currentQty + minQty);
+                                            cartSetQty(
+                                              p.id,
+                                              currentQty + minQty,
+                                            );
                                           },
                                         ),
                                       ],
@@ -220,8 +282,21 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text("Total:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        Text("₹${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.green)),
+                        const Text(
+                          "Total:",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          "₹${total.toStringAsFixed(2)}",
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.green,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -259,7 +334,9 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
 
       final t = catalogSearchBus.text;
       searchCtrl.text = t;
-      searchCtrl.selection = TextSelection.fromPosition(TextPosition(offset: t.length));
+      searchCtrl.selection = TextSelection.fromPosition(
+        TextPosition(offset: t.length),
+      );
 
       // Use post frame callback to ensure widgets are built
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -279,7 +356,7 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
 
     load();
     _loadFavorites();
-    
+
     // Auto-focus search bar when page opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && searchFocus.canRequestFocus) {
@@ -303,7 +380,7 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
       valueListenable: cartQty,
       builder: (_, cartMap, __) {
         final cartCount = cartMap.values.fold<int>(0, (a, b) => a + b);
-        
+
         return Stack(
           children: [
             Column(
@@ -318,7 +395,10 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
                       height: 120,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Colors.green.shade800, Colors.green.shade500],
+                          colors: [
+                            Colors.green.shade800,
+                            Colors.green.shade500,
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -378,52 +458,63 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
                   child: loading
                       ? const Center(child: CircularProgressIndicator())
                       : error != null
-                          ? Center(child: Text(error!))
-                          : shown.isEmpty
-                              ? const Center(child: Text("No products"))
-                              : ListView.separated(
-                                  padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
-                                    itemCount: shown.length,
-                                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                    itemBuilder: (context, i) {
-                                      final p = shown[i];
-                                      final qty = cartMap[p.id] ?? 0;
-                                      final minQty = p.minQty.toInt();
+                      ? Center(child: Text(error!))
+                      : shown.isEmpty
+                      ? const Center(child: Text("No products"))
+                      : ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+                          itemCount: shown.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 8),
+                          itemBuilder: (context, i) {
+                            final p = shown[i];
+                            final qty = cartMap[p.id] ?? 0;
+                            final minQty = p.minQty.toInt();
 
-                                      return ProductRow(
-                                        p: p,
-                                        qty: qty,
-                                        onMinus: () {
-                                          final newQty = qty - minQty;
-                                          cartSetQty(p.id, newQty < minQty ? 0 : newQty);
-                                        },
-                                        onPlus: () => cartSetQty(p.id, qty == 0 ? minQty : qty + minQty),
-                                        onQtyTextChanged: (v) {
-                                          final enteredQty = int.tryParse(v.trim()) ?? 0;
-                                          if (enteredQty == 0) {
-                                            cartSetQty(p.id, 0);
-                                          } else if (enteredQty < minQty) {
-                                            cartSetQty(p.id, minQty);
-                                          } else {
-                                            // Round to nearest multiple of minQty
-                                            final rounded = (enteredQty / minQty).round() * minQty;
-                                            cartSetQty(p.id, rounded);
-                                          }
-                                        },
-                                          onAddPressed: qty > 0
-                                              ? () {
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(content: Text("✓ Added $qty × ${p.name}")),
-                                                  );
-                                                }
-                                              : null,
-                                        );
-                                      },
-                                    ),
+                            return ProductRow(
+                              p: p,
+                              qty: qty,
+                              onMinus: () {
+                                final newQty = qty - minQty;
+                                cartSetQty(p.id, newQty < minQty ? 0 : newQty);
+                              },
+                              onPlus: () => cartSetQty(
+                                p.id,
+                                qty == 0 ? minQty : qty + minQty,
+                              ),
+                              onQtyTextChanged: (v) {
+                                final enteredQty = int.tryParse(v.trim()) ?? 0;
+                                if (enteredQty == 0) {
+                                  cartSetQty(p.id, 0);
+                                } else if (enteredQty < minQty) {
+                                  cartSetQty(p.id, minQty);
+                                } else {
+                                  // Round to nearest multiple of minQty
+                                  final rounded =
+                                      (enteredQty / minQty).round() * minQty;
+                                  cartSetQty(p.id, rounded);
+                                }
+                              },
+                              onAddPressed: qty > 0
+                                  ? () {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            "✓ Added $qty × ${p.name}",
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  : null,
+                            );
+                          },
+                        ),
                 ),
               ],
             ),
-            
+
             // Floating Cart Button
             if (cartCount > 0)
               Positioned(
@@ -440,7 +531,7 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
                       );
                       cartTotal += product.sellingPrice * entry.value;
                     }
-                    
+
                     return FloatingActionButton.extended(
                       onPressed: () {
                         // Check if this page was pushed (has a route to pop)
@@ -492,11 +583,18 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
                         children: [
                           const Text(
                             "View Cart",
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
                           Text(
                             "₹${cartTotal.toStringAsFixed(2)}",
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -567,7 +665,9 @@ class _ProductRowState extends State<ProductRow> {
 
         return Card(
           elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -583,9 +683,18 @@ class _ProductRowState extends State<ProductRow> {
                         width: 120,
                         height: 140,
                         color: Colors.grey.shade100,
-                        child: (widget.p.imageUrl != null && widget.p.imageUrl!.isNotEmpty)
-                            ? Image.network(widget.p.imageUrl!, fit: BoxFit.cover)
-                            : const Icon(Icons.image, color: Colors.grey, size: 40),
+                        child:
+                            (widget.p.imageUrl != null &&
+                                widget.p.imageUrl!.isNotEmpty)
+                            ? Image.network(
+                                widget.p.imageUrl!,
+                                fit: BoxFit.cover,
+                              )
+                            : const Icon(
+                                Icons.image,
+                                color: Colors.grey,
+                                size: 40,
+                              ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -600,21 +709,31 @@ class _ProductRowState extends State<ProductRow> {
                             widget.p.name,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                           const SizedBox(height: 6),
 
                           // In Stock label
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: inStock ? Colors.green.withValues(alpha: 0.12) : Colors.red.withValues(alpha: 0.12),
+                              color: inStock
+                                  ? Colors.green.withValues(alpha: 0.12)
+                                  : Colors.red.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               inStock ? "In Stock" : "Out of Stock",
                               style: TextStyle(
-                                color: inStock ? Colors.green.shade800 : Colors.red.shade800,
+                                color: inStock
+                                    ? Colors.green.shade800
+                                    : Colors.red.shade800,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 11,
                               ),
@@ -623,23 +742,31 @@ class _ProductRowState extends State<ProductRow> {
                           const SizedBox(height: 6),
 
                           // Brand
-                          if (widget.p.brand != null && widget.p.brand!.isNotEmpty)
+                          if (widget.p.brand != null &&
+                              widget.p.brand!.isNotEmpty)
                             Text(
                               "Brand: ${widget.p.brand}",
-                              style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontSize: 12,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
 
                           // Description (short)
-                          if (widget.p.description != null && widget.p.description!.isNotEmpty)
+                          if (widget.p.description != null &&
+                              widget.p.description!.isNotEmpty)
                             Padding(
                               padding: const EdgeInsets.only(top: 4),
                               child: Text(
                                 widget.p.description!,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
                           const SizedBox(height: 8),
@@ -649,7 +776,11 @@ class _ProductRowState extends State<ProductRow> {
                             children: [
                               Text(
                                 "₹${widget.p.sellingPrice.toStringAsFixed(2)}",
-                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.green),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.green,
+                                ),
                               ),
                               if (widget.p.mrp > widget.p.sellingPrice) ...[
                                 const SizedBox(width: 8),
@@ -697,7 +828,9 @@ class _ProductRowState extends State<ProductRow> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    isFav ? "Removed from favorites" : "Added to favorites",
+                                    isFav
+                                        ? "Removed from favorites"
+                                        : "Added to favorites",
                                   ),
                                   duration: const Duration(seconds: 1),
                                 ),
@@ -710,7 +843,10 @@ class _ProductRowState extends State<ProductRow> {
                             }
                           },
                           padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                          constraints: const BoxConstraints(
+                            minWidth: 40,
+                            minHeight: 40,
+                          ),
                         ),
                       ],
                     ),
@@ -731,7 +867,11 @@ class _ProductRowState extends State<ProductRow> {
                         children: [
                           Text(
                             "Qty (${widget.p.unit})",
-                            style: TextStyle(color: Colors.grey.shade700, fontSize: 12, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const SizedBox(height: 6),
                           Row(
@@ -740,15 +880,25 @@ class _ProductRowState extends State<ProductRow> {
                                 child: Material(
                                   color: Colors.transparent,
                                   child: InkWell(
-                                    onTap: widget.qty > 0 ? widget.onMinus : null,
+                                    onTap: widget.qty > 0
+                                        ? widget.onMinus
+                                        : null,
                                     borderRadius: BorderRadius.circular(8),
                                     child: Container(
                                       height: 36,
                                       decoration: BoxDecoration(
-                                        border: Border.all(color: Colors.grey.shade300),
+                                        border: Border.all(
+                                          color: Colors.grey.shade300,
+                                        ),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: Icon(Icons.remove, size: 18, color: widget.qty > 0 ? Colors.grey.shade700 : Colors.grey.shade300),
+                                      child: Icon(
+                                        Icons.remove,
+                                        size: 18,
+                                        color: widget.qty > 0
+                                            ? Colors.grey.shade700
+                                            : Colors.grey.shade300,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -764,11 +914,18 @@ class _ProductRowState extends State<ProductRow> {
                                   keyboardType: TextInputType.number,
                                   textAlign: TextAlign.center,
                                   decoration: InputDecoration(
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
                                     isDense: true,
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
                                   ),
-                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -781,10 +938,16 @@ class _ProductRowState extends State<ProductRow> {
                                     child: Container(
                                       height: 36,
                                       decoration: BoxDecoration(
-                                        border: Border.all(color: Colors.grey.shade300),
+                                        border: Border.all(
+                                          color: Colors.grey.shade300,
+                                        ),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: Icon(Icons.add, size: 18, color: Colors.grey.shade700),
+                                      child: Icon(
+                                        Icons.add,
+                                        size: 18,
+                                        color: Colors.grey.shade700,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -804,11 +967,17 @@ class _ProductRowState extends State<ProductRow> {
                         children: [
                           Text(
                             "Action",
-                            style: TextStyle(color: Colors.grey.shade700, fontSize: 12, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const SizedBox(height: 6),
                           ElevatedButton(
-                            onPressed: widget.qty > 0 ? widget.onAddPressed : null,
+                            onPressed: widget.qty > 0
+                                ? widget.onAddPressed
+                                : null,
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 10),
                               backgroundColor: Colors.green,
@@ -816,7 +985,11 @@ class _ProductRowState extends State<ProductRow> {
                             ),
                             child: const Text(
                               "Add to Cart",
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ],

@@ -10,6 +10,7 @@ import '../admin/pages/admin_ledger_page.dart';
 import '../subdealer/pages/sd_my_orders_page.dart';
 import '../subdealer/pages/sd_ledger_page.dart';
 import '../profile/profile_page.dart';
+import '../../main.dart';
 
 class YouPage extends StatelessWidget {
   final String role;
@@ -33,7 +34,7 @@ class YouPage extends StatelessWidget {
               children: [
                 ListTile(
                   leading: const Icon(Icons.person),
-                  title: Text(isAdmin ? "Admin" : "Subdealer"),
+                  title: Text(currentSession?.phone ?? "No phone"),
                   subtitle: Text(role),
                 ),
                 const Divider(height: 1),
