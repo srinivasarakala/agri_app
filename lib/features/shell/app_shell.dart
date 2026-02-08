@@ -159,7 +159,24 @@ class _CartPageState extends State<_CartPage> {
         return ListView(
           padding: const EdgeInsets.only(top: 12),
           children: [
-            TopBanner(subtitle: "Cart($totalItems)"),
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.green.shade800, Colors.green.shade500],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Text(
+                "Cart ($totalItems)",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
             const SizedBox(height: 12),
 
             if (loading)
