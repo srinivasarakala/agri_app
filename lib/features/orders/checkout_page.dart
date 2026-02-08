@@ -185,7 +185,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               ),
             )
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -430,55 +430,73 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       );
                     },
                   ),
-
-                  const SizedBox(height: 24),
-
-                  // Place Order Button
-                  ElevatedButton(
-                    onPressed: placing
-                        ? null
-                        : (_isProfileComplete() ? _placeOrder : null),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      disabledBackgroundColor: Colors.grey.shade300,
-                    ),
-                    child: placing
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                ],
+              ),
+            ),
+      bottomNavigationBar: loading || error != null
+          ? null
+          : Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (!_isProfileComplete())
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(
+                          '* All marked fields are required',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.red.shade700,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ElevatedButton(
+                      onPressed: placing
+                          ? null
+                          : (_isProfileComplete() ? _placeOrder : null),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        disabledBackgroundColor: Colors.grey.shade300,
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      child: placing
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : Text(
+                              _isProfileComplete()
+                                  ? 'Place Order'
+                                  : 'Complete Required Fields to Place Order',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          )
-                        : Text(
-                            _isProfileComplete()
-                                ? 'Place Order'
-                                : 'Complete Required Fields to Place Order',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
-
-                  if (!_isProfileComplete())
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        '* All marked fields are required',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.red.shade700,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
                     ),
-                ],
+                  ],
+                ),
               ),
             ),
     );

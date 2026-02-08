@@ -300,7 +300,7 @@ class _CartPageState extends State<_CartPage> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: const Text(
-                        "Place Order",
+                        "Checkout",
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
