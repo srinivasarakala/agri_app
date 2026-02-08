@@ -18,6 +18,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   bool placing = false;
   String? error;
 
+  List<Product> allProducts = [];
+
   final firstNameCtrl = TextEditingController();
   final lastNameCtrl = TextEditingController();
   final addressCtrl = TextEditingController();
@@ -29,6 +31,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
   void initState() {
     super.initState();
     _loadProfile();
+    _loadProducts();
   }
 
   @override
@@ -62,6 +65,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
       error = 'Failed to load profile: $e';
     } finally {
       setState(() => loading = false);
+    }
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      allProducts = await catalogApi.listProducts();
+      setState(() {});
+    } catch (e) {
+      // Silent fail, products are for display only
     }
   }
 
@@ -288,6 +300,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   ValueListenableBuilder<Map<int, int>>(
                     valueListenable: cartQty,
                     builder: (_, cart, __) {
+                      final cartProducts = allProducts
+                          .where((p) => cart.containsKey(p.id))
+                          .toList();
+
+                      final totalAmount = cartProducts.fold<double>(0, (
+                        sum,
+                        p,
+                      ) {
+                        final qty = cart[p.id] ?? 0;
+                        return sum + (p.sellingPrice * qty);
+                      });
+
                       final totalItems = cart.values.fold<int>(
                         0,
                         (a, b) => a + b,
@@ -308,15 +332,94 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 ),
                               ),
                               const SizedBox(height: 12),
+                              const Divider(),
+                              const SizedBox(height: 8),
+
+                              // Items list
+                              ...cartProducts.map((product) {
+                                final qty = cart[product.id] ?? 0;
+                                final itemTotal = product.sellingPrice * qty;
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 4,
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              product.name,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            Text(
+                                              'Qty: $qty × ₹${product.sellingPrice.toStringAsFixed(2)}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Text(
+                                        '₹${itemTotal.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+
+                              const SizedBox(height: 12),
+                              const Divider(),
+                              const SizedBox(height: 8),
+
+                              // Total row
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text('Total Items:'),
+                                  const Text(
+                                    'Total Items:',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                   Text(
                                     '$totalItems',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Total Amount:',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    '₹${totalAmount.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green.shade700,
                                     ),
                                   ),
                                 ],
