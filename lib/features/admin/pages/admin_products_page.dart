@@ -93,6 +93,12 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Manage Products${items.isNotEmpty ? " (${items.length})" : ""}',
+        ),
+        actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: load)],
+      ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : error != null
@@ -108,82 +114,42 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
             )
           : RefreshIndicator(
               onRefresh: load,
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.green.shade800, Colors.green.shade500],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+              child: ListView.builder(
+                itemCount: items.length,
+                itemBuilder: (context, i) {
+                  final p = items[i];
+                  return ListTile(
+                    leading: p.imageUrl != null && p.imageUrl!.isNotEmpty
+                        ? Image.network(
+                            p.imageUrl!,
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                const Icon(Icons.image),
+                          )
+                        : const Icon(Icons.image),
+                    title: Text(p.name),
+                    subtitle: Text(
+                      '${p.sku} • ₹${p.sellingPrice.toStringAsFixed(2)} • Stock: ${p.globalStock.toStringAsFixed(2)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    child: Row(
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
-                          "Manage Products",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () => _openProductForm(product: p),
                         ),
-                        const Spacer(),
-                        Text(
-                          "${items.length}",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _deleteProduct(p),
                         ),
                       ],
                     ),
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: items.length,
-                      itemBuilder: (context, i) {
-                        final p = items[i];
-                        return ListTile(
-                          leading: p.imageUrl != null && p.imageUrl!.isNotEmpty
-                              ? Image.network(
-                                  p.imageUrl!,
-                                  width: 50,
-                                  height: 50,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      const Icon(Icons.image),
-                                )
-                              : const Icon(Icons.image),
-                          title: Text(p.name),
-                          subtitle: Text(
-                            '${p.sku} • ₹${p.sellingPrice.toStringAsFixed(2)} • Stock: ${p.globalStock.toStringAsFixed(2)}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit),
-                                onPressed: () => _openProductForm(product: p),
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.delete,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () => _deleteProduct(p),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+                  );
+                },
               ),
             ),
       floatingActionButton: FloatingActionButton(

@@ -86,6 +86,12 @@ class _AdminProductVideosPageState extends State<AdminProductVideosPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Product Videos${items.isNotEmpty ? " (${items.length})" : ""}',
+        ),
+        actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: load)],
+      ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : error != null
@@ -109,80 +115,40 @@ class _AdminProductVideosPageState extends State<AdminProductVideosPage> {
             )
           : RefreshIndicator(
               onRefresh: load,
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.green.shade800, Colors.green.shade500],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+              child: ListView.builder(
+                itemCount: items.length,
+                itemBuilder: (context, i) {
+                  final v = items[i];
+                  return ListTile(
+                    leading: Image.network(
+                      v.thumbnailUrl,
+                      width: 80,
+                      height: 50,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          const Icon(Icons.video_library),
                     ),
-                    child: Row(
+                    title: Text(v.title),
+                    subtitle: Text(
+                      'Order: ${v.order} • ${v.isActive ? "Active" : "Inactive"}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
-                          "Product Videos",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                          ),
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () => _openVideoForm(video: v),
                         ),
-                        const Spacer(),
-                        Text(
-                          "${items.length}",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _deleteVideo(v),
                         ),
                       ],
                     ),
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: items.length,
-                      itemBuilder: (context, i) {
-                        final v = items[i];
-                        return ListTile(
-                          leading: Image.network(
-                            v.thumbnailUrl,
-                            width: 80,
-                            height: 50,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.video_library),
-                          ),
-                          title: Text(v.title),
-                          subtitle: Text(
-                            'Order: ${v.order} • ${v.isActive ? "Active" : "Inactive"}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit),
-                                onPressed: () => _openVideoForm(video: v),
-                              ),
-                              IconButton(
-                                icon: const Icon(
-                                  Icons.delete,
-                                  color: Colors.red,
-                                ),
-                                onPressed: () => _deleteVideo(v),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+                  );
+                },
               ),
             ),
       floatingActionButton: FloatingActionButton(
