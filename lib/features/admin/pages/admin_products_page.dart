@@ -18,6 +18,10 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
   List<Product> items = [];
   List<Product> filteredItems = [];
   List<Category> categories = [];
+  
+  // Selection mode
+  bool isSelectionMode = false;
+  Set<int> selectedProductIds = {};
 
   final searchCtrl = TextEditingController();
   String? selectedBrand;
@@ -41,6 +45,8 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
     setState(() {
       loading = true;
       error = null;
+      isSelectionMode = false;
+      selectedProductIds.clear();
     });
     try {
       items = await catalogApi.listProducts();
@@ -110,6 +116,90 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
     _applySearch();
   }
 
+  void _toggleSelectionMode() {
+    setState(() {
+      isSelectionMode = !isSelectionMode;
+      if (!isSelectionMode) {
+        selectedProductIds.clear();
+      }
+    });
+  }
+
+  void _toggleProductSelection(int productId) {
+    setState(() {
+      if (selectedProductIds.contains(productId)) {
+        selectedProductIds.remove(productId);
+      } else {
+        selectedProductIds.add(productId);
+      }
+    });
+  }
+
+  void _selectAll() {
+    setState(() {
+      if (selectedProductIds.length == filteredItems.length) {
+        selectedProductIds.clear();
+      } else {
+        selectedProductIds = filteredItems.map((p) => p.id).toSet();
+      }
+    });
+  }
+
+  Future<void> _deleteSelectedProducts() async {
+    if (selectedProductIds.isEmpty) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Products?'),
+        content: Text(
+          'Permanently delete ${selectedProductIds.length} product(s)? This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => loading = true);
+
+    try {
+      // Delete each selected product
+      for (final productId in selectedProductIds) {
+        await catalogApi.adminDeleteProduct(productId);
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${selectedProductIds.length} product(s) deleted'),
+        ),
+      );
+
+      setState(() {
+        selectedProductIds.clear();
+        isSelectionMode = false;
+      });
+
+      load();
+    } catch (e) {
+      setState(() => loading = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
   Future<void> _openProductForm({Product? product}) async {
     await showModalBottomSheet(
       context: context,
@@ -166,9 +256,39 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Manage Products${filteredItems.isNotEmpty ? " (${filteredItems.length})" : ""}',
+          isSelectionMode
+              ? '${selectedProductIds.length} selected'
+              : 'Manage Products${filteredItems.isNotEmpty ? " (${filteredItems.length})" : ""}',
         ),
-        actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: load)],
+        leading: isSelectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _toggleSelectionMode,
+              )
+            : null,
+        actions: [
+          if (isSelectionMode) ...[
+            IconButton(
+              icon: Icon(
+                selectedProductIds.length == filteredItems.length
+                    ? Icons.check_box
+                    : Icons.check_box_outline_blank,
+              ),
+              onPressed: _selectAll,
+              tooltip: 'Select All',
+            ),
+          ] else ...[
+            IconButton(
+              icon: const Icon(Icons.checklist),
+              onPressed: _toggleSelectionMode,
+              tooltip: 'Select Items',
+            ),
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: load,
+            ),
+          ],
+        ],
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
@@ -323,44 +443,58 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                             ),
                           )
                         : ListView.builder(
+                            padding: const EdgeInsets.only(bottom: 80),
                             itemCount: filteredItems.length,
                             itemBuilder: (context, i) {
                               final p = filteredItems[i];
+                              final isSelected = selectedProductIds.contains(p.id);
+
                               return ListTile(
-                                leading:
-                                    p.imageUrl != null && p.imageUrl!.isNotEmpty
-                                    ? Image.network(
-                                        p.imageUrl!,
-                                        width: 50,
-                                        height: 50,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) =>
-                                            const Icon(Icons.image),
+                                leading: isSelectionMode
+                                    ? Checkbox(
+                                        value: isSelected,
+                                        onChanged: (_) =>
+                                            _toggleProductSelection(p.id),
                                       )
-                                    : const Icon(Icons.image),
+                                    : (p.imageUrl != null &&
+                                            p.imageUrl!.isNotEmpty
+                                        ? Image.network(
+                                            p.imageUrl!,
+                                            width: 50,
+                                            height: 50,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) =>
+                                                const Icon(Icons.image),
+                                          )
+                                        : const Icon(Icons.image)),
                                 title: Text(p.name),
                                 subtitle: Text(
                                   '${p.sku} • ₹${p.sellingPrice.toStringAsFixed(2)} • Stock: ${p.globalStock.toStringAsFixed(2)}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.edit),
-                                      onPressed: () =>
-                                          _openProductForm(product: p),
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(
-                                        Icons.delete,
-                                        color: Colors.red,
+                                trailing: isSelectionMode
+                                    ? null
+                                    : Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.edit),
+                                            onPressed: () =>
+                                                _openProductForm(product: p),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete,
+                                              color: Colors.red,
+                                            ),
+                                            onPressed: () => _deleteProduct(p),
+                                          ),
+                                        ],
                                       ),
-                                      onPressed: () => _deleteProduct(p),
-                                    ),
-                                  ],
-                                ),
+                                onTap: isSelectionMode
+                                    ? () => _toggleProductSelection(p.id)
+                                    : null,
                               );
                             },
                           ),
@@ -368,10 +502,53 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                 ),
               ],
             ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openProductForm(),
-        child: const Icon(Icons.add),
-      ),
+      floatingActionButton: isSelectionMode
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _openProductForm(),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Product'),
+            ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      bottomNavigationBar: isSelectionMode && selectedProductIds.isNotEmpty
+          ? Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${selectedProductIds.length} item(s) selected',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: _deleteSelectedProducts,
+                      icon: const Icon(Icons.delete),
+                      label: const Text('Delete'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : null,
     );
   }
 }

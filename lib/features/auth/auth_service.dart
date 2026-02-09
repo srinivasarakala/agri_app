@@ -12,10 +12,11 @@ class AuthService {
     await client.dio.post('/auth/send-otp', data: {'phone': phone});
   }
 
-  Future<Session> verifyOtp(String phone, String otp) async {
+  Future<Session> verifyOtp(String phone, String otp, {String? password}) async {
     final res = await client.dio.post('/auth/verify-otp', data: {
       'phone': phone,
       'otp': otp,
+      if (password != null && password.isNotEmpty) 'password': password,
     });
 
     final access = res.data['access'] as String;

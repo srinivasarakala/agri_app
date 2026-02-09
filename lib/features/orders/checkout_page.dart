@@ -131,7 +131,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
       // Place order
       final items = cartQty.value.entries
-          .map((e) => {"product_id": e.key, "qty": e.value})
+          .map((e) => {"product_id": e.key, "qty": e.value.toDouble()})
           .toList();
 
       await ordersApi.createOrder(items: items);

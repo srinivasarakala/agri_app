@@ -104,6 +104,9 @@ class UserBalance {
   final String fullName;
   final double balance;
   final DateTime? lastTransactionDate;
+  final double totalDeliveredValue;
+  final double totalSoldValue;
+  final double pendingItemsValue;
 
   UserBalance({
     required this.userId,
@@ -112,6 +115,9 @@ class UserBalance {
     required this.fullName,
     required this.balance,
     this.lastTransactionDate,
+    this.totalDeliveredValue = 0,
+    this.totalSoldValue = 0,
+    this.pendingItemsValue = 0,
   });
 
   factory UserBalance.fromJson(Map<String, dynamic> json) {
@@ -124,6 +130,9 @@ class UserBalance {
       lastTransactionDate: json['last_transaction_date'] != null
           ? DateTime.parse(json['last_transaction_date'])
           : null,
+      totalDeliveredValue: double.parse((json['total_delivered_value'] ?? 0).toString()),
+      totalSoldValue: double.parse((json['total_sold_value'] ?? 0).toString()),
+      pendingItemsValue: double.parse((json['pending_items_value'] ?? 0).toString()),
     );
   }
 }

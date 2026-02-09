@@ -93,14 +93,118 @@ class _AdminLedgerPageState extends State<AdminLedgerPage> {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadBalances,
-      child: ListView.builder(
-        itemCount: _balances.length,
-        itemBuilder: (context, index) {
-          final balance = _balances[index];
-          return _buildBalanceCard(balance);
-        },
+    // Calculate overall statistics
+    final totalDebt = _balances.fold<double>(0, (sum, b) => sum + (b.balance > 0 ? b.balance : 0));
+    final totalDelivered = _balances.fold<double>(0, (sum, b) => sum + b.totalDeliveredValue);
+    final totalSold = _balances.fold<double>(0, (sum, b) => sum + b.totalSoldValue);
+    final totalPending = _balances.fold<double>(0, (sum, b) => sum + b.pendingItemsValue);
+
+    return Column(
+      children: [
+        // Summary Section
+        Container(
+          color: Colors.blue.shade50,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Overall Summary',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue.shade900,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSummaryCard(
+                      'Total Outstanding',
+                      '₹${totalDebt.toStringAsFixed(2)}',
+                      Icons.account_balance_wallet,
+                      Colors.red.shade400,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildSummaryCard(
+                      'Items Delivered',
+                      '₹${totalDelivered.toStringAsFixed(2)}',
+                      Icons.local_shipping,
+                      Colors.orange.shade400,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSummaryCard(
+                      'Items Sold',
+                      '₹${totalSold.toStringAsFixed(2)}',
+                      Icons.shopping_cart,
+                      Colors.green.shade400,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildSummaryCard(
+                      'Pending Sale',
+                      '₹${totalPending.toStringAsFixed(2)}',
+                      Icons.pending_actions,
+                      Colors.blue.shade400,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        // Balances List
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _loadBalances,
+            child: ListView.builder(
+              itemCount: _balances.length,
+              itemBuilder: (context, index) {
+                final balance = _balances[index];
+                return _buildBalanceCard(balance);
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummaryCard(String label, String value, IconData icon, Color color) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 11, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -108,54 +212,164 @@ class _AdminLedgerPageState extends State<AdminLedgerPage> {
   Widget _buildBalanceCard(UserBalance balance) {
     final hasDebt = balance.balance > 0;
     final balanceColor = hasDebt ? Colors.red : Colors.green;
+    final soldPercentage = balance.totalDeliveredValue > 0 
+        ? (balance.totalSoldValue / balance.totalDeliveredValue * 100) 
+        : 0.0;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: hasDebt
-              ? Colors.red.shade100
-              : Colors.green.shade100,
-          child: Icon(
-            hasDebt ? Icons.account_balance_wallet : Icons.check_circle,
-            color: balanceColor,
+      child: InkWell(
+        onTap: () => _navigateToUserLedger(balance),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: hasDebt
+                        ? Colors.red.shade100
+                        : Colors.green.shade100,
+                    child: Icon(
+                      hasDebt ? Icons.account_balance_wallet : Icons.check_circle,
+                      color: balanceColor,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          balance.fullName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          balance.phone,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '₹${balance.balance.abs().toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: balanceColor,
+                        ),
+                      ),
+                      Text(
+                        hasDebt ? 'Owed' : 'Settled',
+                        style: TextStyle(fontSize: 12, color: balanceColor),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              if (balance.totalDeliveredValue > 0) ...[
+                const Divider(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMiniStat(
+                        'Delivered',
+                        '₹${balance.totalDeliveredValue.toStringAsFixed(0)}',
+                        Icons.local_shipping,
+                        Colors.orange,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildMiniStat(
+                        'Sold',
+                        '₹${balance.totalSoldValue.toStringAsFixed(0)}',
+                        Icons.shopping_cart,
+                        Colors.green,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildMiniStat(
+                        'Pending',
+                        '₹${balance.pendingItemsValue.toStringAsFixed(0)}',
+                        Icons.pending,
+                        Colors.blue,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Progress bar showing sold percentage
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: soldPercentage / 100,
+                          minHeight: 8,
+                          backgroundColor: Colors.grey.shade200,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            soldPercentage > 80 ? Colors.green : 
+                            soldPercentage > 50 ? Colors.orange : Colors.red,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${soldPercentage.toStringAsFixed(0)}%',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (balance.lastTransactionDate != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Last activity: ${_formatDate(balance.lastTransactionDate!)}',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  ),
+                ),
+            ],
           ),
         ),
-        title: Text(
-          balance.fullName,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(balance.phone),
-            if (balance.lastTransactionDate != null)
-              Text(
-                'Last activity: ${_formatDate(balance.lastTransactionDate!)}',
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-          ],
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              '₹${balance.balance.abs().toStringAsFixed(2)}',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: balanceColor,
-              ),
-            ),
-            Text(
-              hasDebt ? 'Owed' : 'Settled',
-              style: TextStyle(fontSize: 12, color: balanceColor),
-            ),
-          ],
-        ),
-        onTap: () => _navigateToUserLedger(balance),
       ),
+    );
+  }
+
+  Widget _buildMiniStat(String label, String value, IconData icon, Color color) {
+    return Column(
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: Colors.grey),
+        ),
+      ],
     );
   }
 
@@ -302,24 +516,144 @@ class _UserLedgerDetailPageState extends State<UserLedgerDetailPage> {
 
     final hasDebt = _balance!.balance > 0;
     final balanceColor = hasDebt ? Colors.red : Colors.green;
+    final soldPercentage = _balance!.totalDeliveredValue > 0 
+        ? (_balance!.totalSoldValue / _balance!.totalDeliveredValue * 100) 
+        : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(16),
-      color: balanceColor.withOpacity(0.1),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            balanceColor.withOpacity(0.1),
+            balanceColor.withOpacity(0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Current Balance:',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Current Balance:',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                '₹${_balance!.balance.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: balanceColor,
+                ),
+              ),
+            ],
           ),
-          Text(
-            '₹${_balance!.balance.toStringAsFixed(2)}',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: balanceColor,
+          if (_balance!.totalDeliveredValue > 0) ...[
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 12),
+            Text(
+              'Settlement Overview',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey.shade700,
+              ),
             ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildDetailStat(
+                    'Delivered Value',
+                    '₹${_balance!.totalDeliveredValue.toStringAsFixed(2)}',
+                    Icons.local_shipping,
+                    Colors.orange,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildDetailStat(
+                    'Sold Value',
+                    '₹${_balance!.totalSoldValue.toStringAsFixed(2)}',
+                    Icons.shopping_cart,
+                    Colors.green,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildDetailStat(
+                    'Pending Items',
+                    '₹${_balance!.pendingItemsValue.toStringAsFixed(2)}',
+                    Icons.pending,
+                    Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: soldPercentage / 100,
+                      minHeight: 12,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        soldPercentage > 80 ? Colors.green : 
+                        soldPercentage > 50 ? Colors.orange : Colors.red,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '${soldPercentage.toStringAsFixed(1)}% sold',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailStat(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 20, color: color),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 9, color: Colors.grey),
+            textAlign: TextAlign.center,
           ),
         ],
       ),

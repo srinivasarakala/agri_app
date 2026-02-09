@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../main.dart';
 import '../../orders/order_models.dart';
+import '../../orders/mark_sold_page.dart';
 
 class SdMyOrdersPage extends StatefulWidget {
   const SdMyOrdersPage({super.key});
@@ -238,6 +239,40 @@ class _SdMyOrdersPageState extends State<SdMyOrdersPage> {
                                   ),
                                 ],
                               ],
+                            ),
+                          ),
+                        // Mark as Sold button for delivered orders
+                        if (o.deliveryStatus == 'DELIVERED')
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => MarkSoldPage(order: o),
+                                    ),
+                                  );
+                                  // Refresh if items were marked as sold
+                                  if (result == true) {
+                                    load();
+                                  }
+                                },
+                                icon: const Icon(Icons.sell, size: 18),
+                                label: const Text('Mark Items as Sold'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         if ((o.note ?? "").trim().isNotEmpty)

@@ -4,10 +4,12 @@ import '../../core/cart/cart_state.dart';
 import '../catalog/product.dart';
 import '../catalog/category.dart';
 import '../catalog/product_video.dart';
+import '../catalog/product_details_page.dart';
 import '../catalog/widgets/featured_products_carousel.dart';
 import '../catalog/widgets/categories_carousel.dart';
 import '../catalog/widgets/product_videos_carousel.dart';
 import '../subdealer/pages/sd_catalog_page.dart'; // reuse your existing catalog page
+import 'widgets/top_products_carousel.dart';
 
 class HomePage extends StatefulWidget {
   final String role; // "DEALER_ADMIN" or "SUBDEALER"
@@ -21,12 +23,14 @@ class _HomePageState extends State<HomePage> {
   bool loading = true;
   String? error;
   List<Product> featured = [];
+  List<Product> allProducts = [];
   List<Category> categories = [];
   bool categoriesLoading = true;
   String? categoriesError;
   List<ProductVideo> videos = [];
   bool videosLoading = true;
   String? videosError;
+  int _topProductsKey = 0; // Key to force TopProductsCarousel refresh
 
   @override
   void initState() {
@@ -35,6 +39,11 @@ class _HomePageState extends State<HomePage> {
     _load();
     _loadCategories();
     _loadVideos();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   Future<void> _loadUserCartIfNeeded() async {
@@ -55,11 +64,15 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _load() async {
-    setState(() { loading = true; error = null; });
+    setState(() {
+      loading = true;
+      error = null;
+    });
     try {
       final all = await catalogApi.listProducts();
       // Sort by date (newest first)
       all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      allProducts = all;
       featured = all.take(8).toList();
     } catch (e) {
       error = "Failed to load products";
@@ -69,7 +82,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadCategories() async {
-    setState(() { categoriesLoading = true; categoriesError = null; });
+    setState(() {
+      categoriesLoading = true;
+      categoriesError = null;
+    });
     try {
       // Load manual categories (better grouping than tag-based)
       final cats = await catalogApi.listCategories();
@@ -82,7 +98,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadVideos() async {
-    setState(() { videosLoading = true; videosError = null; });
+    setState(() {
+      videosLoading = true;
+      videosError = null;
+    });
     try {
       final vids = await catalogApi.listProductVideos();
       videos = vids;
@@ -95,11 +114,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _refreshAll() async {
-    await Future.wait([
-      _load(),
-      _loadCategories(),
-      _loadVideos(),
-    ]);
+    await Future.wait([_load(), _loadCategories(), _loadVideos()]);
+    // Force TopProductsCarousel to reload
+    if (mounted) {
+      setState(() {
+        _topProductsKey++;
+      });
+    }
   }
 
   void openCatalog({String initialQuery = "", int? categoryId, String? tag}) {
@@ -108,7 +129,7 @@ class _HomePageState extends State<HomePage> {
       MaterialPageRoute(
         builder: (_) => Scaffold(
           body: SdCatalogPage(
-            initialQuery: initialQuery, 
+            initialQuery: initialQuery,
             categoryId: categoryId,
             tag: tag,
           ),
@@ -131,17 +152,20 @@ class _HomePageState extends State<HomePage> {
               // Banner image
               Container(
                 width: double.infinity,
-                height: 200,
+                height: 150,
                 child: Image.asset(
                   'assets/images/top_banner.png',
-                  fit: BoxFit.cover,
+                  fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) {
                     // Fallback to gradient if image not found
                     print('Error loading banner: $error');
                     return Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Colors.green.shade800, Colors.green.shade500],
+                          colors: [
+                            Colors.green.shade800,
+                            Colors.green.shade500,
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -158,12 +182,10 @@ class _HomePageState extends State<HomePage> {
               ),
               // Search bar overlay
               Positioned(
-                bottom: 16,
+                bottom: -20,
                 left: 14,
                 right: 14,
-                child: _SearchPill(
-                  onTap: () => openCatalog(initialQuery: ""),
-                ),
+                child: _SearchPill(onTap: () => openCatalog(initialQuery: "")),
               ),
             ],
           ),
@@ -172,7 +194,10 @@ class _HomePageState extends State<HomePage> {
 
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: const Text("Shop by Category", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+            child: const Text(
+              "Shop by Category",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
           ),
 
           const SizedBox(height: 12),
@@ -191,6 +216,11 @@ class _HomePageState extends State<HomePage> {
             },
           ),
 
+          const SizedBox(height: 24),
+
+          // Top Products Section
+          TopProductsCarousel(key: ValueKey(_topProductsKey)),
+
           const SizedBox(height: 20),
 
           Padding(
@@ -202,7 +232,9 @@ class _HomePageState extends State<HomePage> {
                 onTap: () {
                   // TODO: Implement download catalogue functionality
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Download catalogue feature coming soon")),
+                    const SnackBar(
+                      content: Text("Download catalogue feature coming soon"),
+                    ),
                   );
                 },
                 child: Container(
@@ -256,7 +288,10 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Row(
               children: [
-                const Text("New Arrivals", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                const Text(
+                  "New Arrivals",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                ),
                 const Spacer(),
                 TextButton(
                   onPressed: () => openCatalog(initialQuery: ""),
@@ -279,7 +314,14 @@ class _HomePageState extends State<HomePage> {
           else
             FeaturedProductsCarousel(
               products: featured,
-              onProductTap: (product) => openCatalog(initialQuery: product.name),
+              onProductTap: (product) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProductDetailsPage(product: product),
+                  ),
+                );
+              },
             ),
 
           const SizedBox(height: 24),
@@ -347,7 +389,10 @@ class _SearchPill extends StatelessWidget {
               const Expanded(
                 child: Text(
                   "Search products…",
-                  style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               Icon(Icons.mic_none, size: 20, color: Colors.grey.shade600),

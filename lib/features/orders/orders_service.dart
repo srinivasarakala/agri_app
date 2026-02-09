@@ -66,4 +66,20 @@ class OrdersService {
     );
     return Order.fromJson(res.data);
   }
+
+  Future<Order> markItemsSold(
+    int orderId,
+    List<Map<String, dynamic>> items, // [{item_id, sold_qty}]
+  ) async {
+    final res = await client.dio.post(
+      '/api/orders/$orderId/mark-sold',
+      data: {"items": items},
+    );
+    return Order.fromJson(res.data);
+  }
+
+  Future<Map<String, dynamic>> getSettlementReport() async {
+    final res = await client.dio.get('/api/admin/settlement-report');
+    return res.data as Map<String, dynamic>;
+  }
 }

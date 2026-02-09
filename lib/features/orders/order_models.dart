@@ -13,6 +13,9 @@ class OrderItem {
   final String unit;
   final double requestedQty;
   final double approvedQty;
+  final double soldQty;
+  final DateTime? soldAt;
+  final double price;
 
   OrderItem({
     required this.id,
@@ -22,6 +25,9 @@ class OrderItem {
     required this.unit,
     required this.requestedQty,
     required this.approvedQty,
+    required this.soldQty,
+    this.soldAt,
+    required this.price,
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> j) => OrderItem(
@@ -32,6 +38,9 @@ class OrderItem {
     unit: (j['unit'] ?? 'pcs').toString(),
     requestedQty: _toDouble(j['requested_qty']),
     approvedQty: _toDouble(j['approved_qty']),
+    soldQty: _toDouble(j['sold_qty'] ?? 0),
+    soldAt: j['sold_at'] != null ? DateTime.tryParse(j['sold_at']) : null,
+    price: _toDouble(j['price']),
   );
 }
 

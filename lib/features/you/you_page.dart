@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/widgets/top_banner.dart';
 import '../../core/cart/cart_state.dart';
 import '../admin/pages/admin_products_page.dart';
 import '../admin/pages/admin_product_videos_page.dart';
@@ -8,6 +7,8 @@ import '../admin/pages/admin_categories_page.dart';
 import '../admin/pages/admin_orders_page.dart';
 import '../admin/pages/admin_stock_history_page.dart';
 import '../admin/pages/admin_ledger_page.dart';
+import '../admin/pages/admin_top_products_page.dart';
+import '../orders/settlement_report_page.dart';
 import '../subdealer/pages/sd_my_orders_page.dart';
 import '../subdealer/pages/sd_ledger_page.dart';
 import '../profile/profile_page.dart';
@@ -133,6 +134,17 @@ class YouPage extends StatelessWidget {
                     ),
                   ),
                   ListTile(
+                    leading: const Icon(Icons.star),
+                    title: const Text("Top Products"),
+                    subtitle: const Text("Manage home page featured products"),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AdminTopProductsPage(),
+                      ),
+                    ),
+                  ),
+                  ListTile(
                     leading: const Icon(Icons.list_alt),
                     title: const Text("Approve Orders"),
                     onTap: () => Navigator.push(
@@ -156,11 +168,24 @@ class YouPage extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.account_balance_wallet),
                     title: const Text("Ledger & Settlements"),
-                    subtitle: const Text("Track balances and payments"),
+                    subtitle: const Text("Track balances, payments & sales"),
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => const AdminLedgerPage(),
+                      ),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.assessment),
+                    title: const Text("Settlement Report"),
+                    subtitle: const Text(
+                      "Track sold items for money settlement",
+                    ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SettlementReportPage(),
                       ),
                     ),
                   ),

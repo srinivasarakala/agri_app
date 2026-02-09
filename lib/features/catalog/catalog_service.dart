@@ -124,4 +124,32 @@ class CatalogService {
   Future<void> adminDeleteProductVideo(int videoId) async {
     await client.dio.delete('/api/admin/product-videos/$videoId');
   }
+
+  // Top Products API
+  Future<List<String>> getTopProductImages() async {
+    try {
+      final res = await client.dio.get('/api/admin/top-products/images');
+      final list = (res.data as List).cast<String>();
+      return list;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<String> uploadTopProductImage(int index, String filePath) async {
+    final form = FormData.fromMap({
+      'image': await MultipartFile.fromFile(filePath),
+    });
+
+    final res = await client.dio.post(
+      '/api/admin/top-products/images/$index',
+      data: form,
+    );
+
+    return res.data['image_url'] as String;
+  }
+
+  Future<void> deleteTopProductImage(int index) async {
+    await client.dio.delete('/api/admin/top-products/images/$index');
+  }
 }

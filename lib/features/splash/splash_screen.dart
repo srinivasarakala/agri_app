@@ -76,49 +76,45 @@ class _SplashScreenState extends State<SplashScreen>
       body: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
-          return Opacity(
-            opacity: _fadeAnimation.value,
-            child: child,
-          );
+          return Opacity(opacity: _fadeAnimation.value, child: child);
         },
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Full screen logo
-            Image.asset(
-              'assets/images/logo.png',
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                // Fallback UI if image not found
-                print('Error loading logo: $error');
-                return Container(
-                  color: Colors.green.shade700,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.agriculture,
-                          size: 100,
-                          color: Colors.white,
+        child: Container(
+          color: Colors.white,
+          child: Center(
+            child: ScaleTransition(
+              scale: _scaleAnimation,
+              child: Image.asset(
+                'assets/images/logo.png',
+                width: 250,
+                height: 250,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  // Fallback UI if image not found
+                  print('Error loading logo: $error');
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.agriculture,
+                        size: 100,
+                        color: Colors.green.shade700,
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Agri B2B',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade700,
+                          letterSpacing: 1.5,
                         ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          'Agri B2B',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
-          ],
+          ),
         ),
       ),
     );
