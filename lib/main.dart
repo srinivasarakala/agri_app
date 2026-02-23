@@ -32,7 +32,7 @@ void main() async {
 
   final storage = TokenStorage();
   final client = DioClient(
-    baseUrl: 'http://10.0.2.2:8000', // emulator -> PC
+    baseUrl: 'https://myhitechagro.in', // production
     storage: storage,
   );
 
@@ -55,10 +55,18 @@ class AgriApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'Agri B2B',
+      debugShowCheckedModeBanner: false,
 
       theme: ThemeData(
         useMaterial3: false, // fixes many light color issues
         primarySwatch: Colors.green,
+        scaffoldBackgroundColor: Colors.white,
+        canvasColor: Colors.white,
+        colorScheme: ColorScheme.fromSwatch(
+          primarySwatch: Colors.green,
+        ).copyWith(
+          surface: Colors.white,
+        ),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           backgroundColor: Colors.white,
           selectedItemColor: Colors.green,
@@ -66,6 +74,13 @@ class AgriApp extends StatelessWidget {
           showUnselectedLabels: true,
         ),
       ),
+
+      builder: (context, child) {
+        return ColoredBox(
+          color: Colors.white,
+          child: child ?? const SizedBox(),
+        );
+      },
 
       routerConfig: buildRouter(),
     );

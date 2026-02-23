@@ -167,7 +167,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Complete Your Order'), elevation: 1),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Checkout'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : error != null

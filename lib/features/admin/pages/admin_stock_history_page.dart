@@ -107,8 +107,12 @@ class _AdminStockHistoryPageState extends State<AdminStockHistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Stock History'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),

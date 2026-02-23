@@ -50,7 +50,7 @@ class _ProductVideosCarouselState extends State<ProductVideosCarousel> {
   Widget build(BuildContext context) {
     if (widget.isLoading) {
       return const SizedBox(
-        height: 240,
+        height: 280,
         child: Center(child: CircularProgressIndicator()),
       );
     }
@@ -72,7 +72,7 @@ class _ProductVideosCarouselState extends State<ProductVideosCarousel> {
     return Column(
       children: [
         SizedBox(
-          height: 220,
+          height: 280,
           child: PageView.builder(
             controller: _pageController,
             onPageChanged: (index) {
@@ -146,20 +146,50 @@ class _VideoCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Video title and description at the top
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      video.title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (video.description != null &&
+                        video.description!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        video.description!,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
               // Video thumbnail
-              Stack(
+              Expanded(
+                child: Stack(
                   children: [
                     ClipRRect(
                       borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(12),
+                        bottom: Radius.circular(12),
                       ),
                       child: Image.network(
                         video.thumbnailUrl,
-                        height: 140,
                         width: double.infinity,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
-                          height: 140,
                           color: Colors.grey.shade200,
                           child: const Center(
                             child: Icon(
@@ -177,7 +207,7 @@ class _VideoCard extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.3),
                           borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(12),
+                            bottom: Radius.circular(12),
                           ),
                         ),
                         child: const Center(
@@ -191,41 +221,11 @@ class _VideoCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                // Video title and description
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        video.title,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (video.description != null &&
-                          video.description!.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          video.description!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
   }
 }

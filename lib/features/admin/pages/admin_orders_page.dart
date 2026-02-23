@@ -303,7 +303,12 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
+        title: const Text('Orders'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(
             tooltip: pendingOnly ? 'Showing Pending' : 'Showing All',

@@ -18,11 +18,18 @@ class DioClient {
       },
       onError: (e, handler) async {
         if (e.response?.statusCode != 401) return handler.next(e);
-        if (e.requestOptions.extra['retried'] == true) return handler.next(e);
+        if (e.requestOptions.extra['retried'] == true) {
+          // Refresh already failed, clear session
+          await storage.clear();
+          return handler.next(e);
+        }
 
         final data = await storage.readAll();
         final refresh = data['refresh'];
-        if (refresh == null || refresh.isEmpty) return handler.next(e);
+        if (refresh == null || refresh.isEmpty) {
+          await storage.clear();
+          return handler.next(e);
+        }
 
         try {
           // refresh access
@@ -32,7 +39,10 @@ class DioClient {
           );
 
           final newAccess = r.data['access'] as String?;
-          if (newAccess == null || newAccess.isEmpty) return handler.next(e);
+          if (newAccess == null || newAccess.isEmpty) {
+            await storage.clear();
+            return handler.next(e);
+          }
 
           // save new access, keep refresh + role values intact
           await storage.saveSession(
@@ -50,6 +60,8 @@ class DioClient {
           final resp = await dio.fetch(ro);
           return handler.resolve(resp);
         } catch (_) {
+          // Refresh token is invalid/expired, clear session
+          await storage.clear();
           return handler.next(e);
         }
       },

@@ -43,8 +43,12 @@ class _SettlementReportPageState extends State<SettlementReportPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Settlement Report'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadReport),
         ],

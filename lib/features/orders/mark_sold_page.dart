@@ -129,8 +129,12 @@ class _MarkSoldPageState extends State<MarkSoldPage> {
     });
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('Mark Items Sold - Order #${widget.order.id}'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
       ),
       body: Column(
         children: [

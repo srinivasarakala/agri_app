@@ -1,7 +1,7 @@
-name: agri_app
-description: "A new Flutter project."
+name: pavan_agro
+description: "Pavan HiTech Agro App."
 publish_to: 'none'
-version: 0.1.0
+version: 1.0.0+1
 
 environment:
   sdk: ^3.10.8
@@ -21,9 +21,15 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
   
   assets:
     - assets/images/
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"

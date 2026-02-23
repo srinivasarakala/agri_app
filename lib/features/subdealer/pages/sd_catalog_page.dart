@@ -5,6 +5,8 @@ import '../../catalog/product_details_page.dart';
 import '../../../core/cart/cart_state.dart';
 import '../../shell/app_shell.dart';
 import '../../orders/checkout_page.dart';
+import 'package:dio/dio.dart';
+import 'package:go_router/go_router.dart';
 
 class SdCatalogPage extends StatefulWidget {
   final String initialQuery;
@@ -34,6 +36,10 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
 
   VoidCallback? _busListener;
 
+  // Active filters that can be set by widget params or catalog search bus
+  int? _activeCategoryId;
+  String? _activeTag;
+
   // ✅ cart: productId -> qty (int)
 
   Future<void> load() async {
@@ -45,6 +51,14 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
     try {
       all = await catalogApi.listProducts();
       _applyFilter();
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401 && mounted) {
+        // Session expired, redirect to login
+        currentSession = null;
+        if (mounted) context.go('/login');
+      } else {
+        error = "Failed to load products: $e";
+      }
     } catch (e) {
       error = "Failed to load products: $e";
     } finally {
@@ -72,15 +86,15 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
         }
       }
 
-      // Filter by category if provided
-      if (widget.categoryId != null && p.categoryId != widget.categoryId) {
+      // Filter by category if active
+      if (_activeCategoryId != null && p.categoryId != _activeCategoryId) {
         return false;
       }
 
-      // Filter by tag if provided
-      if (widget.tag != null && widget.tag!.isNotEmpty) {
+      // Filter by tag if active
+      if (_activeTag != null && _activeTag!.isNotEmpty) {
         if (p.tags == null ||
-            !p.tags!.toLowerCase().contains(widget.tag!.toLowerCase())) {
+            !p.tags!.toLowerCase().contains(_activeTag!.toLowerCase())) {
           return false;
         }
       }
@@ -302,27 +316,45 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
 
     searchFocus = FocusNode();
     searchCtrl.text = widget.initialQuery;
+    
+    // Initialize active filters from widget parameters
+    _activeCategoryId = widget.categoryId;
+    _activeTag = widget.tag;
 
-    // ✅ bus listener: tap search on home -> open catalog + focus
+    // ✅ bus listener: tap search/category on home -> switch to catalog tab + apply filter
     _busListener = () {
       if (!mounted) return;
       if (!catalogSearchBus.goToCatalog) return;
 
       final t = catalogSearchBus.text;
+      final catId = catalogSearchBus.categoryId;
+      final tag = catalogSearchBus.tag;
+      
+      // Update search text
       searchCtrl.text = t;
       searchCtrl.selection = TextSelection.fromPosition(
         TextPosition(offset: t.length),
       );
+      
+      // Update active filters
+      _activeCategoryId = catId;
+      _activeTag = tag;
 
-      // Use post frame callback to ensure widgets are built
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && searchFocus.canRequestFocus) {
-          FocusScope.of(context).requestFocus(searchFocus);
-        }
-      });
+      // Focus search bar only if text search was triggered
+      if (t.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && searchFocus.canRequestFocus) {
+            FocusScope.of(context).requestFocus(searchFocus);
+          }
+        });
+      }
 
       catalogSearchBus.consumeGoToCatalog();
-      _applyFilter();
+      
+      // Only apply filter if products are already loaded
+      if (all.isNotEmpty) {
+        _applyFilter();
+      }
     };
 
     catalogSearchBus.addListener(_busListener!);
@@ -332,13 +364,6 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
 
     load();
     _loadFavorites();
-
-    // Auto-focus search bar when page opens
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && searchFocus.canRequestFocus) {
-        FocusScope.of(context).requestFocus(searchFocus);
-      }
-    });
   }
 
   @override
@@ -352,84 +377,40 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<Map<int, int>>(
-      valueListenable: cartQty,
-      builder: (_, cartMap, __) {
-        final cartCount = cartMap.values.fold<int>(0, (a, b) => a + b);
-
-        return Stack(
-          children: [
-            Column(
+    return Container(
+      color: Colors.white,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: (Navigator.canPop(context) || appTabIndex.value == 4)
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.black),
+                  onPressed: () {
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    } else {
+                      // Return to home tab in AppShell
+                      appTabIndex.value = 0;
+                    }
+                  },
+                )
+              : null,
+          title: const Text(
+            'Products',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        body: ValueListenableBuilder<Map<int, int>>(
+          valueListenable: cartQty,
+          builder: (_, cartMap, __) {
+            return Column(
               children: [
-                // Green banner with search bar overlay
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    // Green banner background
-                    Container(
-                      width: double.infinity,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.green.shade800,
-                            Colors.green.shade500,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                    ),
-                    // Search bar with back button overlay
-                    Positioned(
-                      bottom: 16,
-                      left: 12,
-                      right: 12,
-                      child: SafeArea(
-                        bottom: false,
-                        child: Row(
-                          children: [
-                            // Back button (only show if page can be popped)
-                            if (Navigator.canPop(context))
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: IconButton(
-                                  icon: const Icon(Icons.arrow_back),
-                                  onPressed: () => Navigator.pop(context),
-                                  padding: const EdgeInsets.all(8),
-                                ),
-                              ),
-                            if (Navigator.canPop(context))
-                              const SizedBox(width: 8),
-                            // Search bar
-                            Expanded(
-                              child: TextField(
-                                controller: searchCtrl,
-                                focusNode: searchFocus,
-                                decoration: InputDecoration(
-                                  hintText: "Search product…",
-                                  prefixIcon: const Icon(Icons.search),
-                                  filled: true,
-                                  fillColor: Colors.white,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 6),
-
                 Expanded(
                   child: loading
                       ? const Center(child: CircularProgressIndicator())
@@ -489,98 +470,10 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
                         ),
                 ),
               ],
-            ),
-
-            // Floating Cart Button
-            if (cartCount > 0)
-              Positioned(
-                bottom: 20,
-                right: 20,
-                child: Builder(
-                  builder: (context) {
-                    // Calculate cart total value
-                    double cartTotal = 0;
-                    for (var entry in cartMap.entries) {
-                      final product = all.firstWhere(
-                        (p) => p.id == entry.key,
-                        orElse: () => all.first,
-                      );
-                      cartTotal += product.sellingPrice * entry.value;
-                    }
-
-                    return FloatingActionButton.extended(
-                      onPressed: () {
-                        // Check if this page was pushed (has a route to pop)
-                        if (Navigator.canPop(context)) {
-                          // Pop the catalog page first, then navigate to cart
-                          Navigator.pop(context);
-                          // Use Future.microtask to ensure pop completes before changing tab
-                          Future.microtask(() => appTabIndex.value = 1);
-                        } else {
-                          // We're in a tab view, just change the tab
-                          appTabIndex.value = 1;
-                        }
-                      },
-                      backgroundColor: Colors.green,
-                      icon: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          const Icon(Icons.shopping_cart, color: Colors.white),
-                          Positioned(
-                            right: -8,
-                            top: -8,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 20,
-                                minHeight: 20,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  cartCount > 99 ? "99+" : cartCount.toString(),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      label: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "View Cart",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            "₹${cartTotal.toStringAsFixed(2)}",
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-          ],
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 }

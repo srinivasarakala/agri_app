@@ -90,6 +90,13 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Categories'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : error != null
@@ -108,42 +115,48 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
                 )
               : RefreshIndicator(
                   onRefresh: _load,
-                  child: ListView.builder(
-                    itemCount: categories.length,
-                    itemBuilder: (context, index) {
-                      final cat = categories[index];
-                      return ListTile(
-                        leading: cat.imageUrl != null && cat.imageUrl!.isNotEmpty
-                            ? Image.network(
-                                cat.imageUrl!,
-                                width: 50,
-                                height: 50,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) =>
-                                    const Icon(Icons.category),
-                              )
-                            : const Icon(Icons.category),
-                        title: Text(cat.name),
-                        subtitle: Text(
-                          '${cat.productCount} product${cat.productCount != 1 ? 's' : ''}',
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () =>
-                                  _openCategoryForm(category: cat),
+                  child: ListView(
+                    padding: const EdgeInsets.only(top: 10, bottom: 80),
+                    children: [
+                      ...categories.map((cat) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                          child: Card(
+                            child: ListTile(
+                              leading: cat.imageUrl != null && cat.imageUrl!.isNotEmpty
+                                  ? Image.network(
+                                      cat.imageUrl!,
+                                      width: 50,
+                                      height: 50,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          const Icon(Icons.category),
+                                    )
+                                  : const Icon(Icons.category),
+                              title: Text(cat.name),
+                              subtitle: Text(
+                                '${cat.productCount} product${cat.productCount != 1 ? 's' : ''}',
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit),
+                                    onPressed: () =>
+                                        _openCategoryForm(category: cat),
+                                  ),
+                                  IconButton(
+                                    icon:
+                                        const Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () => _deleteCategory(cat),
+                                  ),
+                                ],
+                              ),
                             ),
-                            IconButton(
-                              icon:
-                                  const Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deleteCategory(cat),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                          ),
+                        );
+                      }),
+                    ],
                   ),
                 ),
       floatingActionButton: FloatingActionButton(

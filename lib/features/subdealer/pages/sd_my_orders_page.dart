@@ -105,7 +105,13 @@ class _SdMyOrdersPageState extends State<SdMyOrdersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("My Orders")),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text("My Orders"),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : error != null

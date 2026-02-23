@@ -57,18 +57,12 @@ class YouPage extends StatelessWidget {
       padding: EdgeInsets.zero,
       children: [
         Container(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.green.shade800, Colors.green.shade500],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
+          padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
+          color: Colors.white,
           child: const Text(
             "Menu",
             style: TextStyle(
-              color: Colors.white,
+              color: Colors.black,
               fontSize: 20,
               fontWeight: FontWeight.w900,
             ),

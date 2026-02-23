@@ -35,14 +35,28 @@ class _CategoriesCarouselState extends State<CategoriesCarousel> {
 
   final ScrollController _scrollController = ScrollController();
   Timer? _autoScrollTimer;
+  bool _userInteracting = false;
 
   @override
   void initState() {
     super.initState();
-    // Auto-scroll disabled
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   _startAutoScroll();
-    // });
+    // Start auto-scroll after initial frame and if categories exist
+    if (widget.categories.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startAutoScroll();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(CategoriesCarousel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Start auto-scroll when categories are loaded
+    if (oldWidget.categories.isEmpty && widget.categories.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startAutoScroll();
+      });
+    }
   }
 
   @override
@@ -50,6 +64,41 @@ class _CategoriesCarouselState extends State<CategoriesCarousel> {
     _autoScrollTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _startAutoScroll() {
+    if (widget.categories.length <= 1 || !_scrollController.hasClients) {
+      return;
+    }
+
+    // Auto-scroll every 3 seconds
+    _autoScrollTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (!_scrollController.hasClients || _userInteracting) {
+        return;
+      }
+
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      final currentScroll = _scrollController.position.pixels;
+      final cardWidth = 172.0; // 160 width + 12 padding
+
+      // Scroll one card at a time
+      double nextScroll = currentScroll + cardWidth;
+
+      // Loop back to start when reaching the end
+      if (nextScroll >= maxScroll) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        _scrollController.animateTo(
+          nextScroll,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   @override
@@ -74,29 +123,45 @@ class _CategoriesCarouselState extends State<CategoriesCarousel> {
 
     return SizedBox(
       height: 220,
-      child: ListView.builder(
-        controller: _scrollController,
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        itemCount: widget.categories.length,
-        itemBuilder: (context, index) {
-          final category = widget.categories[index];
-          final backgroundColor =
-              _CategoriesCarouselState._categoryColors[index %
-                  _CategoriesCarouselState._categoryColors.length];
-          return Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: CategoryCard(
-              categoryName: category.name,
-              productImages: category.productImages,
-              productCount: category.productCount,
-              backgroundColor: backgroundColor,
-              onTap: widget.onCategoryTap != null
-                  ? () => widget.onCategoryTap!(category)
-                  : null,
-            ),
-          );
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          // Pause auto-scroll when user is manually scrolling
+          if (notification is ScrollStartNotification) {
+            _userInteracting = true;
+          } else if (notification is ScrollEndNotification) {
+            // Resume auto-scroll after user stops scrolling
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted) {
+                setState(() => _userInteracting = false);
+              }
+            });
+          }
+          return false;
         },
+        child: ListView.builder(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          itemCount: widget.categories.length,
+          itemBuilder: (context, index) {
+            final category = widget.categories[index];
+            final backgroundColor =
+                _CategoriesCarouselState._categoryColors[index %
+                    _CategoriesCarouselState._categoryColors.length];
+            return Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: CategoryCard(
+                categoryName: category.name,
+                productImages: category.productImages,
+                productCount: category.productCount,
+                backgroundColor: backgroundColor,
+                onTap: widget.onCategoryTap != null
+                    ? () => widget.onCategoryTap!(category)
+                    : null,
+              ),
+            );
+          },
+        ),
       ),
     );
   }

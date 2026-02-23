@@ -254,12 +254,16 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
           isSelectionMode
               ? '${selectedProductIds.length} selected'
               : 'Manage Products${filteredItems.isNotEmpty ? " (${filteredItems.length})" : ""}',
         ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         leading: isSelectionMode
             ? IconButton(
                 icon: const Icon(Icons.close),

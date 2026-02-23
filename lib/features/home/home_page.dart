@@ -8,8 +8,10 @@ import '../catalog/product_details_page.dart';
 import '../catalog/widgets/featured_products_carousel.dart';
 import '../catalog/widgets/categories_carousel.dart';
 import '../catalog/widgets/product_videos_carousel.dart';
-import '../subdealer/pages/sd_catalog_page.dart'; // reuse your existing catalog page
+import 'package:dio/dio.dart';
+import 'package:go_router/go_router.dart';
 import 'widgets/top_products_carousel.dart';
+import '../shell/app_shell.dart'; // for appTabIndex
 
 class HomePage extends StatefulWidget {
   final String role; // "DEALER_ADMIN" or "SUBDEALER"
@@ -74,6 +76,14 @@ class _HomePageState extends State<HomePage> {
       all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       allProducts = all;
       featured = all.take(8).toList();
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401 && mounted) {
+        // Session expired, redirect to login
+        currentSession = null;
+        if (mounted) context.go('/login');
+      } else {
+        error = "Failed to load products";
+      }
     } catch (e) {
       error = "Failed to load products";
     } finally {
@@ -89,7 +99,8 @@ class _HomePageState extends State<HomePage> {
     try {
       // Load manual categories (better grouping than tag-based)
       final cats = await catalogApi.listCategories();
-      categories = cats;
+      // Filter out categories with no products
+      categories = cats.where((cat) => cat.productCount > 0).toList();
     } catch (e) {
       categoriesError = "Failed to load categories";
     } finally {
@@ -124,18 +135,17 @@ class _HomePageState extends State<HomePage> {
   }
 
   void openCatalog({String initialQuery = "", int? categoryId, String? tag}) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => Scaffold(
-          body: SdCatalogPage(
-            initialQuery: initialQuery,
-            categoryId: categoryId,
-            tag: tag,
-          ),
-        ),
-      ),
-    );
+    // Switch to hidden catalog page (index 4 in AppShell)
+    appTabIndex.value = 4;
+    
+    // Pass the filter parameters via catalog search bus after frame is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (initialQuery.isNotEmpty) {
+        catalogSearchBus.openCatalogWithSearch(initialQuery);
+      } else if (categoryId != null || tag != null) {
+        catalogSearchBus.openCatalogWithCategory(categoryId: categoryId, tag: tag);
+      }
+    });
   }
 
   @override
@@ -145,52 +155,14 @@ class _HomePageState extends State<HomePage> {
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // Top banner with search bar overlay
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              // Banner image
-              Container(
-                width: double.infinity,
-                height: 150,
-                child: Image.asset(
-                  'assets/images/top_banner.png',
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    // Fallback to gradient if image not found
-                    print('Error loading banner: $error');
-                    return Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Colors.green.shade800,
-                            Colors.green.shade500,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Banner image not found',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              // Search bar overlay
-              Positioned(
-                bottom: -20,
-                left: 14,
-                right: 14,
-                child: _SearchPill(onTap: () => openCatalog(initialQuery: "")),
-              ),
-            ],
+          // White header with search bar
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
+            child: _SearchPill(onTap: () => openCatalog(initialQuery: "")),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
 
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -286,18 +258,9 @@ class _HomePageState extends State<HomePage> {
 
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              children: [
-                const Text(
-                  "New Arrivals",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                ),
-                const Spacer(),
-                TextButton(
-                  onPressed: () => openCatalog(initialQuery: ""),
-                  child: const Text("See all"),
-                ),
-              ],
+            child: const Text(
+              "New Arrivals",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
             ),
           ),
 
@@ -374,6 +337,10 @@ class _SearchPill extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: Colors.black.withOpacity(0.15),
+              width: 1,
+            ),
             boxShadow: [
               BoxShadow(
                 blurRadius: 10,

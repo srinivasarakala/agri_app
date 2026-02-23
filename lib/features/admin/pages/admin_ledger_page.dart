@@ -43,8 +43,12 @@ class _AdminLedgerPageState extends State<AdminLedgerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Ledger - All Subdealers'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadBalances),
         ],
@@ -447,6 +451,7 @@ class _UserLedgerDetailPageState extends State<UserLedgerDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -455,6 +460,9 @@ class _UserLedgerDetailPageState extends State<UserLedgerDetailPage> {
             Text(widget.phone, style: const TextStyle(fontSize: 12)),
           ],
         ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
         ],

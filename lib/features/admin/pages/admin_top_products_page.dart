@@ -118,10 +118,12 @@ class _AdminTopProductsPageState extends State<AdminTopProductsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text('Manage Top Products (${topProductImages.length})'),
-        backgroundColor: Colors.green.shade700,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
         ],

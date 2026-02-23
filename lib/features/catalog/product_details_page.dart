@@ -78,22 +78,40 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         : null;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Product Details'),
-        actions: [
-          IconButton(
-            icon: Icon(
-              isFavorite ? Icons.favorite : Icons.favorite_outline,
-              color: isFavorite ? Colors.red : null,
-            ),
-            onPressed: _toggleFavorite,
-          ),
-        ],
-      ),
+      backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // White top header with back button and favorite
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(8, 48, 8, 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const Text(
+                    'Product Details',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      isFavorite ? Icons.favorite : Icons.favorite_outline,
+                      color: isFavorite ? Colors.red : null,
+                    ),
+                    onPressed: _toggleFavorite,
+                  ),
+                ],
+              ),
+            ),
+            
             // Product Image
             Container(
               width: double.infinity,
@@ -457,8 +475,11 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
           return ValueListenableBuilder<int>(
             valueListenable: appTabIndex,
             builder: (context, currentTab, _) {
+              // Clamp index for bottom nav (0-3), catalog page is index 4
+              final navIndex = currentTab > 3 ? 0 : currentTab;
+              
               return BottomNavigationBar(
-                currentIndex: currentTab,
+                currentIndex: navIndex,
                 onTap: (index) {
                   // Pop the product details page and navigate to selected tab
                   Navigator.pop(context);

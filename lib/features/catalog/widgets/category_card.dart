@@ -30,6 +30,7 @@ class CategoryCard extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Category Name at top
               Text(
@@ -50,44 +51,45 @@ class CategoryCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               // Image Collage (2x2 grid)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  width: double.infinity,
-                  height: 136,
-                  color: Colors.grey.shade100,
-                  child: GridView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 2,
-                          mainAxisSpacing: 2,
-                        ),
-                    itemCount: 4,
-                    itemBuilder: (context, index) {
-                      final hasImage =
-                          index < productImages.length &&
-                          productImages[index].isNotEmpty;
-                      return Container(
-                        color: Colors.grey.shade200,
-                        child: hasImage
-                            ? Image.network(
-                                productImages[index],
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.category,
-                                  size: 24,
-                                  color: Colors.grey,
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: double.infinity,
+                    color: Colors.grey.shade100,
+                    child: GridView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 2,
+                            mainAxisSpacing: 2,
+                          ),
+                      itemCount: 4,
+                      itemBuilder: (context, index) {
+                        final hasImage =
+                            index < productImages.length &&
+                            productImages[index].isNotEmpty;
+                        return Container(
+                          color: Colors.grey.shade200,
+                          child: hasImage
+                              ? Image.network(
+                                  productImages[index],
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => const Icon(
+                                    Icons.category,
+                                    size: 24,
+                                    color: Colors.grey,
+                                  ),
+                                )
+                              : Icon(
+                                  Icons.image_outlined,
+                                  size: 28,
+                                  color: Colors.grey.shade400,
                                 ),
-                              )
-                            : Icon(
-                                Icons.image_outlined,
-                                size: 28,
-                                color: Colors.grey.shade400,
-                              ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
