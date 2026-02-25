@@ -377,104 +377,177 @@ class _SdCatalogPageState extends State<SdCatalogPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
+      return Container(
+        color: Colors.white,
+        child: Scaffold(
           backgroundColor: Colors.white,
-          elevation: 0,
-          leading: (Navigator.canPop(context) || appTabIndex.value == 4)
-              ? IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.black),
-                  onPressed: () {
-                    if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    } else {
-                      // Return to home tab in AppShell
-                      appTabIndex.value = 0;
-                    }
-                  },
-                )
-              : null,
-          title: const Text(
-            'Products',
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: (Navigator.canPop(context) || appTabIndex.value == 4)
+                ? IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.black),
+                    onPressed: () {
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      } else {
+                        // Return to home tab in AppShell
+                        appTabIndex.value = 0;
+                      }
+                    },
+                  )
+                : null,
+            title: const Text(
+              'Products',
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-        ),
-        body: ValueListenableBuilder<Map<int, int>>(
-          valueListenable: cartQty,
-          builder: (_, cartMap, __) {
-            return Column(
-              children: [
-                Expanded(
-                  child: loading
-                      ? const Center(child: CircularProgressIndicator())
-                      : error != null
-                      ? Center(child: Text(error!))
-                      : shown.isEmpty
-                      ? const Center(child: Text("No products"))
-                      : ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
-                          itemCount: shown.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 8),
-                          itemBuilder: (context, i) {
-                            final p = shown[i];
-                            final qty = cartMap[p.id] ?? 0;
-                            final minQty = p.minQty.toInt();
-
-                            return ProductRow(
-                              p: p,
-                              qty: qty,
-                              onMinus: () {
-                                final newQty = qty - minQty;
-                                cartSetQty(p.id, newQty < minQty ? 0 : newQty);
-                              },
-                              onPlus: () => cartSetQty(
-                                p.id,
-                                qty == 0 ? minQty : qty + minQty,
+          body: ValueListenableBuilder<Map<int, int>>(
+            valueListenable: cartQty,
+            builder: (_, cartMap, __) {
+              return Column(
+                children: [
+                  // --- Filter Bar and Search Bar ---
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Filter chips for active category/tag
+                        Row(
+                          children: [
+                            if (_activeCategoryId != null)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: Chip(
+                                  label: Text(
+                                    'Category: '
+                                    // You may want to show the category name instead of ID
+                                    + _activeCategoryId.toString(),
+                                    style: const TextStyle(fontWeight: FontWeight.w500),
+                                  ),
+                                  onDeleted: () {
+                                    setState(() {
+                                      _activeCategoryId = null;
+                                      _applyFilter();
+                                    });
+                                  },
+                                ),
                               ),
-                              onQtyTextChanged: (v) {
-                                final enteredQty = int.tryParse(v.trim()) ?? 0;
-                                if (enteredQty == 0) {
-                                  cartSetQty(p.id, 0);
-                                } else if (enteredQty < minQty) {
-                                  cartSetQty(p.id, minQty);
-                                } else {
-                                  // Round to nearest multiple of minQty
-                                  final rounded =
-                                      (enteredQty / minQty).round() * minQty;
-                                  cartSetQty(p.id, rounded);
-                                }
-                              },
-                              onAddPressed: qty > 0
-                                  ? () {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            "✓ Added $qty × ${p.name}",
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  : null,
-                            );
-                          },
+                            if (_activeTag != null && _activeTag!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: Chip(
+                                  label: Text(
+                                    'Tag: ' + _activeTag!,
+                                    style: const TextStyle(fontWeight: FontWeight.w500),
+                                  ),
+                                  onDeleted: () {
+                                    setState(() {
+                                      _activeTag = null;
+                                      _applyFilter();
+                                    });
+                                  },
+                                ),
+                              ),
+                          ],
                         ),
-                ),
-              ],
-            );
-          },
+                        const SizedBox(height: 10),
+                        // Search bar
+                        TextField(
+                          controller: searchCtrl,
+                          focusNode: searchFocus,
+                          decoration: InputDecoration(
+                            hintText: 'Search products…',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: searchCtrl.text.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      searchCtrl.clear();
+                                      _applyFilter();
+                                    },
+                                  )
+                                : null,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                          ),
+                          onSubmitted: (_) => _applyFilter(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : error != null
+                        ? Center(child: Text(error!))
+                        : shown.isEmpty
+                        ? const Center(child: Text("No products"))
+                        : ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+                            itemCount: shown.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (context, i) {
+                              final p = shown[i];
+                              final qty = cartMap[p.id] ?? 0;
+                              final minQty = p.minQty.toInt();
+
+                              return ProductRow(
+                                p: p,
+                                qty: qty,
+                                onMinus: () {
+                                  final newQty = qty - minQty;
+                                  cartSetQty(p.id, newQty < minQty ? 0 : newQty);
+                                },
+                                onPlus: () => cartSetQty(
+                                  p.id,
+                                  qty == 0 ? minQty : qty + minQty,
+                                ),
+                                onQtyTextChanged: (v) {
+                                  final enteredQty = int.tryParse(v.trim()) ?? 0;
+                                  if (enteredQty == 0) {
+                                    cartSetQty(p.id, 0);
+                                  } else if (enteredQty < minQty) {
+                                    cartSetQty(p.id, minQty);
+                                  } else {
+                                    // Round to nearest multiple of minQty
+                                    final rounded =
+                                        (enteredQty / minQty).round() * minQty;
+                                    cartSetQty(p.id, rounded);
+                                  }
+                                },
+                                onAddPressed: qty > 0
+                                    ? () {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              "✓ Added $qty × ${p.name}",
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    : null,
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
-      ),
-    );
+      );
   }
 }
 

@@ -32,7 +32,8 @@ void main() async {
 
   final storage = TokenStorage();
   final client = DioClient(
-    baseUrl: 'https://myhitechagro.in', // production
+    //baseUrl: 'https://myhitechagro.in', // production
+    baseUrl: 'http://10.0.2.2:8000', //lcoal
     storage: storage,
   );
 

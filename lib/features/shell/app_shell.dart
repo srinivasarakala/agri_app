@@ -7,6 +7,7 @@ import '../catalog/widgets/product_detail_dialog.dart';
 import '../../main.dart'; // for catalogApi
 import '../orders/checkout_page.dart';
 import '../subdealer/pages/sd_catalog_page.dart';
+import 'categories_nav_page.dart';
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 
@@ -47,8 +48,8 @@ class _AppShellState extends State<AppShell> {
   Widget build(BuildContext context) {
     final pages = [
       HomePage(role: widget.role), // 0 Home
-      const _CartPage(), // 1 Cart
-      const _FavoritesPage(), // 2 Favorites
+      CategoriesNavPage(), // 1 Categories (moved up)
+      const _CartPage(), // 2 Cart
       YouPage(role: widget.role), // 3 You (role menus + logout)
       SdCatalogPage(), // 4 Products (hidden, switched to programmatically)
     ];
@@ -74,6 +75,10 @@ class _AppShellState extends State<AppShell> {
                   const BottomNavigationBarItem(
                     icon: Icon(Icons.home),
                     label: "Home",
+                  ),
+                  const BottomNavigationBarItem(
+                    icon: Icon(Icons.category),
+                    label: "Categories",
                   ),
                   BottomNavigationBarItem(
                     icon: Stack(
@@ -104,10 +109,6 @@ class _AppShellState extends State<AppShell> {
                       ],
                     ),
                     label: "Cart",
-                  ),
-                  const BottomNavigationBarItem(
-                    icon: Icon(Icons.favorite),
-                    label: "Favorite",
                   ),
                   const BottomNavigationBarItem(
                     icon: Icon(Icons.menu),
@@ -472,14 +473,15 @@ class _CartPageState extends State<_CartPage> {
   }
 }
 
-class _FavoritesPage extends StatefulWidget {
-  const _FavoritesPage();
+
+class FavoritesPage extends StatefulWidget {
+  const FavoritesPage();
 
   @override
-  State<_FavoritesPage> createState() => _FavoritesPageState();
+  State<FavoritesPage> createState() => _FavoritesPageState();
 }
 
-class _FavoritesPageState extends State<_FavoritesPage> {
+class _FavoritesPageState extends State<FavoritesPage> {
   List<Product> all = [];
   bool loading = true;
   String? error;

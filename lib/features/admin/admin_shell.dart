@@ -3,9 +3,10 @@ import 'pages/admin_orders_page.dart';
 import 'pages/admin_products_page.dart';
 import 'pages/admin_product_videos_page.dart';
 import 'pages/admin_categories_page.dart';
+import 'pages/admin_brands_page.dart';
 import '../../core/widgets/logout_button.dart'; // adjust path if needed
 
-final titles = ['Orders', 'Products', 'Videos', 'Categories'];
+final titles = ['Orders', 'Products', 'Videos', 'Categories', 'Brands'];
 
 class AdminShell extends StatefulWidget {
   const AdminShell({super.key});
@@ -22,6 +23,7 @@ class _AdminShellState extends State<AdminShell> {
     AdminProductsPage(),
     AdminProductVideosPage(),
     AdminCategoriesPage(),
+    AdminBrandsPage(),
   ];
 
   @override
@@ -54,6 +56,10 @@ class _AdminShellState extends State<AdminShell> {
           BottomNavigationBarItem(
             icon: Icon(Icons.category),
             label: 'Category',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.store),
+            label: 'Brands',
           ),
         ],
       ),

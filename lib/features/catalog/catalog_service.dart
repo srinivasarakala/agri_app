@@ -2,9 +2,39 @@ import '../../core/api/dio_client.dart';
 import 'product.dart';
 import 'category.dart';
 import 'product_video.dart';
+import 'brand.dart';
 import 'package:dio/dio.dart';
 
 class CatalogService {
+
+        Future<Brand> adminUploadBrandImage(int brandId, String filePath) async {
+          final form = FormData.fromMap({
+            'image': await MultipartFile.fromFile(filePath),
+          });
+          final res = await client.dio.post(
+            '/api/admin/brands/$brandId/image',
+            data: form,
+          );
+          return Brand.fromJson(res.data as Map<String, dynamic>);
+        }
+      Future<Brand> adminCreateBrand(Map<String, dynamic> payload) async {
+        final res = await client.dio.post('/api/admin/brands', data: payload);
+        return Brand.fromJson(res.data as Map<String, dynamic>);
+      }
+
+      Future<Brand> adminUpdateBrand(int brandId, Map<String, dynamic> payload) async {
+        final res = await client.dio.put('/api/admin/brands/$brandId', data: payload);
+        return Brand.fromJson(res.data as Map<String, dynamic>);
+      }
+
+      Future<void> adminDeleteBrand(int brandId) async {
+        await client.dio.delete('/api/admin/brands/$brandId');
+      }
+    Future<List<Map<String, dynamic>>> listBrands() async {
+      final res = await client.dio.get('/api/brands/');
+      final list = (res.data as List).cast<Map<String, dynamic>>();
+      return list;
+    }
   final DioClient client;
   CatalogService(this.client);
 

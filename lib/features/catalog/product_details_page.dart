@@ -491,6 +491,10 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                     icon: Icon(Icons.home),
                     label: "Home",
                   ),
+                  const BottomNavigationBarItem(
+                    icon: Icon(Icons.category),
+                    label: "Categories",
+                  ),
                   BottomNavigationBarItem(
                     icon: Stack(
                       alignment: Alignment.topRight,
@@ -520,10 +524,6 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                       ],
                     ),
                     label: "Cart",
-                  ),
-                  const BottomNavigationBarItem(
-                    icon: Icon(Icons.favorite),
-                    label: "Favorite",
                   ),
                   const BottomNavigationBarItem(
                     icon: Icon(Icons.menu),

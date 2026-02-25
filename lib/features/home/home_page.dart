@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../main.dart';
 import '../../core/cart/cart_state.dart';
+import '../brand/brands_page.dart';
+import '../brand/brand_products_page.dart';
+import '../brand/brands_carousel.dart';
+import '../catalog/brand.dart';
 import '../catalog/product.dart';
 import '../catalog/category.dart';
 import '../catalog/product_video.dart';
@@ -8,6 +12,7 @@ import '../catalog/product_details_page.dart';
 import '../catalog/widgets/featured_products_carousel.dart';
 import '../catalog/widgets/categories_carousel.dart';
 import '../catalog/widgets/product_videos_carousel.dart';
+import '../catalog/unified_products_page.dart';
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 import 'widgets/top_products_carousel.dart';
@@ -34,6 +39,10 @@ class _HomePageState extends State<HomePage> {
   String? videosError;
   int _topProductsKey = 0; // Key to force TopProductsCarousel refresh
 
+  List<Brand> brands = [];
+  bool brandsLoading = true;
+  String? brandsError;
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +50,22 @@ class _HomePageState extends State<HomePage> {
     _load();
     _loadCategories();
     _loadVideos();
+    _loadBrands();
+  }
+
+  Future<void> _loadBrands() async {
+    setState(() {
+      brandsLoading = true;
+      brandsError = null;
+    });
+    try {
+      final brandList = await catalogApi.listBrands();
+      brands = brandList.map((b) => Brand.fromJson(b)).toList();
+    } catch (e) {
+      brandsError = "Failed to load brands";
+    } finally {
+      setState(() => brandsLoading = false);
+    }
   }
 
   @override
@@ -125,7 +150,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _refreshAll() async {
-    await Future.wait([_load(), _loadCategories(), _loadVideos()]);
+    await Future.wait([
+      _load(),
+      _loadCategories(),
+      _loadVideos(),
+      _loadBrands(),
+    ]);
     // Force TopProductsCarousel to reload
     if (mounted) {
       setState(() {
@@ -159,10 +189,150 @@ class _HomePageState extends State<HomePage> {
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
-            child: _SearchPill(onTap: () => openCatalog(initialQuery: "")),
+            child: _SearchPill(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => UnifiedProductsPage(
+                      showSearchBar: true,
+                      showFilterRow: true,
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
 
           const SizedBox(height: 12),
+
+          // Shop by Brands Section
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: const Text(
+              "Shop by Brand",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          BrandsCarousel(
+            brands: brands,
+            isLoading: brandsLoading,
+            error: brandsError,
+            onBrandTap: (brand) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => UnifiedProductsPage(
+                    brandId: brand.id,
+                    brandName: brand.name,
+                  ),
+                ),
+              );
+            },
+          ),
+
+          const SizedBox(height: 16),
+
+          // New Arrivals Section
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: const Text(
+              "New Arrivals",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (loading)
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (error != null)
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Text(error!, style: const TextStyle(color: Colors.red)),
+            )
+          else
+            SizedBox(
+              height: 220,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: featured.length,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                itemBuilder: (context, i) {
+                  final product = featured[i];
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProductDetailsPage(product: product),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: 170,
+                      margin: const EdgeInsets.only(right: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                        border: Border.all(color: Colors.green.shade100),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                color: Colors.grey.shade100,
+                                height: 90,
+                                width: double.infinity,
+                                child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                                    ? Image.network(product.imageUrl!, fit: BoxFit.cover)
+                                    : const Icon(Icons.image, size: 48, color: Colors.grey),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              product.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Rs. ${product.sellingPrice.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                color: Colors.deepOrange,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+          const SizedBox(height: 24),
 
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -179,12 +349,15 @@ class _HomePageState extends State<HomePage> {
             isLoading: categoriesLoading,
             error: categoriesError,
             onCategoryTap: (category) {
-              // For dynamic categories, pass the tag name; for manual categories, pass the category ID
-              if (category.isDynamic) {
-                openCatalog(tag: category.name);
-              } else {
-                openCatalog(categoryId: category.id);
-              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => UnifiedProductsPage(
+                    categoryId: category.id,
+                    categoryName: category.name,
+                  ),
+                ),
+              );
             },
           ),
 

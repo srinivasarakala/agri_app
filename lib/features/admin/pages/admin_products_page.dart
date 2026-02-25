@@ -18,6 +18,7 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
   List<Product> items = [];
   List<Product> filteredItems = [];
   List<Category> categories = [];
+  List<Map<String, dynamic>> brands = [];
   
   // Selection mode
   bool isSelectionMode = false;
@@ -51,6 +52,7 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
     try {
       items = await catalogApi.listProducts();
       categories = await catalogApi.listCategories();
+      brands = await catalogApi.listBrands(); // Implement listBrands in your API client
       filteredItems = items;
     } catch (e) {
       error = "Failed to load data: $e";
@@ -210,6 +212,7 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
       builder: (_) => ProductFormSheet(
         product: product,
         categories: categories,
+        brands: brands,
         onSave: load,
       ),
     );
@@ -560,12 +563,14 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
 class ProductFormSheet extends StatefulWidget {
   final Product? product;
   final List<Category> categories;
+  final List<Map<String, dynamic>> brands;
   final VoidCallback onSave;
 
   const ProductFormSheet({
     super.key,
     this.product,
     required this.categories,
+    required this.brands,
     required this.onSave,
   });
 
@@ -577,7 +582,7 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
   late TextEditingController skuCtrl;
   late TextEditingController nameCtrl;
   late TextEditingController descriptionCtrl;
-  late TextEditingController brandCtrl;
+  int? selectedBrandId;
   late TextEditingController unitCtrl;
   late TextEditingController mrpCtrl;
   late TextEditingController priceCtrl;
@@ -599,7 +604,9 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
     descriptionCtrl = TextEditingController(
       text: widget.product?.description ?? '',
     );
-    brandCtrl = TextEditingController(text: widget.product?.brand ?? '');
+    selectedBrandId = widget.product?.brand != null
+      ? int.tryParse(widget.product!.brand.toString())
+      : null;
     unitCtrl = TextEditingController(text: widget.product?.unit ?? 'pcs');
     mrpCtrl = TextEditingController(
       text: widget.product?.mrp.toStringAsFixed(2) ?? '',
@@ -626,7 +633,6 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
     skuCtrl.dispose();
     nameCtrl.dispose();
     descriptionCtrl.dispose();
-    brandCtrl.dispose();
     unitCtrl.dispose();
     mrpCtrl.dispose();
     priceCtrl.dispose();
@@ -671,7 +677,7 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
             : skuCtrl.text,
         'name': nameCtrl.text,
         'description': descriptionCtrl.text,
-        'brand': brandCtrl.text.isEmpty ? null : brandCtrl.text,
+        'brand': selectedBrandId,
         'unit': unitCtrl.text,
         'mrp': double.tryParse(mrpCtrl.text) ?? 0,
         'selling_price': double.tryParse(priceCtrl.text) ?? 0,
@@ -763,12 +769,19 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: TextField(
-                    controller: brandCtrl,
+                  child: DropdownButtonFormField<int>(
+                    value: selectedBrandId,
                     decoration: const InputDecoration(
                       labelText: 'Brand',
                       border: OutlineInputBorder(),
                     ),
+                    items: widget.brands
+                        .map((b) => DropdownMenuItem(
+                              value: int.parse(b['id'].toString()),
+                              child: Text(b['name']),
+                            ))
+                        .toList(),
+                    onChanged: (v) => setState(() => selectedBrandId = v),
                   ),
                 ),
               ],

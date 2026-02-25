@@ -4,6 +4,7 @@ import '../../core/cart/cart_state.dart';
 import '../admin/pages/admin_products_page.dart';
 import '../admin/pages/admin_product_videos_page.dart';
 import '../admin/pages/admin_categories_page.dart';
+import '../admin/pages/admin_brands_page.dart';
 import '../admin/pages/admin_orders_page.dart';
 import '../admin/pages/admin_stock_history_page.dart';
 import '../admin/pages/admin_ledger_page.dart';
@@ -13,6 +14,7 @@ import '../subdealer/pages/sd_my_orders_page.dart';
 import '../subdealer/pages/sd_ledger_page.dart';
 import '../profile/profile_page.dart';
 import '../../main.dart';
+import '../shell/app_shell.dart';
 
 class YouPage extends StatelessWidget {
   final String role;
@@ -71,6 +73,8 @@ class YouPage extends StatelessWidget {
 
         const SizedBox(height: 10),
 
+        // ...existing code...
+
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Card(
@@ -97,6 +101,17 @@ class YouPage extends StatelessWidget {
                 const Divider(height: 1),
 
                 if (isAdmin) ...[
+                                    ListTile(
+                                      leading: const Icon(Icons.store),
+                                      title: const Text("Manage Brands"),
+                                      subtitle: const Text("Add, edit, or delete brands and images"),
+                                      onTap: () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const AdminBrandsPage(),
+                                        ),
+                                      ),
+                                    ),
                   ListTile(
                     leading: const Icon(Icons.inventory_2),
                     title: const Text("Manage Products"),
