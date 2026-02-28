@@ -54,6 +54,7 @@ class _CategoriesNavPageState extends State<CategoriesNavPage> {
           ),
         );
       },
+      onRefresh: _loadCategories,
     );
   }
 }

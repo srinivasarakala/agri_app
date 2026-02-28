@@ -20,9 +20,7 @@ SharedPreferences? _prefs;
 Future<void> initCartStorage() async {
   try {
     _prefs = await SharedPreferences.getInstance();
-    print('SharedPreferences initialized successfully');
   } catch (e) {
-    print('Error initializing SharedPreferences: $e');
   }
 }
 
@@ -35,7 +33,6 @@ Future<void> loadUserCart(String phone) async {
     try {
       final backendCart = await cartApi.loadCart();
       cartQty.value = backendCart;
-      print('Loaded cart from backend: $backendCart');
 
       // Save to local storage for offline access
       if (_prefs != null) {
@@ -43,7 +40,6 @@ Future<void> loadUserCart(String phone) async {
         await _prefs!.setString('cart_$phone', json.encode(cartMap));
       }
     } catch (e) {
-      print('Failed to load from backend, loading from local storage: $e');
 
       // Fallback to local storage
       if (_prefs == null) {
@@ -57,7 +53,6 @@ Future<void> loadUserCart(String phone) async {
           cartQty.value = decoded.map(
             (k, v) => MapEntry(int.parse(k), v as int),
           );
-          print('Loaded cart from local storage: ${cartQty.value}');
         } else {
           cartQty.value = {};
         }
@@ -70,16 +65,12 @@ Future<void> loadUserCart(String phone) async {
     try {
       final backendFavorites = await catalogApi.getFavorites();
       favorites.value = backendFavorites.toSet();
-      print('Loaded favorites from backend: $backendFavorites');
 
       // Save to local storage for offline access
       if (_prefs != null) {
         await _prefs!.setString('favs_$phone', json.encode(backendFavorites));
       }
     } catch (e) {
-      print(
-        'Failed to load favorites from backend, loading from local storage: $e',
-      );
 
       // Fallback to local storage
       if (_prefs == null) {
@@ -91,7 +82,6 @@ Future<void> loadUserCart(String phone) async {
         if (favsJson != null) {
           final List<dynamic> decoded = json.decode(favsJson);
           favorites.value = decoded.cast<int>().toSet();
-          print('Loaded favorites from local storage: ${favorites.value}');
         } else {
           favorites.value = {};
         }
@@ -100,7 +90,6 @@ Future<void> loadUserCart(String phone) async {
       }
     }
   } catch (e) {
-    print('Error loading cart: $e');
     cartQty.value = {};
     favorites.value = {};
   }
@@ -109,7 +98,6 @@ Future<void> loadUserCart(String phone) async {
 // Save cart to SharedPreferences and backend (fire-and-forget)
 void _saveCart() {
   if (_currentUserPhone == null) {
-    print('Cannot save cart: no user phone');
     return;
   }
 
@@ -117,15 +105,12 @@ void _saveCart() {
   cartApi
       .syncCart(cartQty.value)
       .then((_) {
-        print('Cart synced to backend: ${cartQty.value}');
       })
       .catchError((e) {
-        print('Error syncing cart to backend: $e');
       });
 
   // Ensure _prefs is initialized before saving to local storage
   if (_prefs == null) {
-    print('Initializing SharedPreferences for cart save...');
     initCartStorage().then((_) {
       if (_prefs != null) {
         _saveCart(); // Retry after initialization
@@ -140,26 +125,21 @@ void _saveCart() {
     _prefs!
         .setString('cart_$_currentUserPhone', jsonStr)
         .then((_) {
-          print('Saved cart locally for $_currentUserPhone: $jsonStr');
         })
         .catchError((e) {
-          print('Error saving cart locally: $e');
         });
   } catch (e) {
-    print('Error saving cart locally: $e');
   }
 }
 
 // Save favorites to SharedPreferences (fire-and-forget)
 void _saveFavorites() {
   if (_currentUserPhone == null) {
-    print('Cannot save favorites: no user phone');
     return;
   }
 
   // Ensure _prefs is initialized before saving
   if (_prefs == null) {
-    print('Initializing SharedPreferences for favorites save...');
     initCartStorage().then((_) {
       if (_prefs != null) {
         _saveFavorites(); // Retry after initialization
@@ -173,13 +153,10 @@ void _saveFavorites() {
     _prefs!
         .setString('favs_$_currentUserPhone', jsonStr)
         .then((_) {
-          print('Saved favorites for $_currentUserPhone: $jsonStr');
         })
         .catchError((e) {
-          print('Error saving favorites: $e');
         });
   } catch (e) {
-    print('Error saving favorites: $e');
   }
 }
 
@@ -210,7 +187,6 @@ Future<String?> cartSetQtyWithValidation(int productId, int qty) async {
     cartQty.value = UnmodifiableMapView(m);
     return null; // No error
   } catch (e) {
-    print('Error updating cart: $e');
     // Extract error message from exception
     final errorMsg = e.toString();
     if (errorMsg.contains('out of stock')) {
@@ -235,13 +211,9 @@ void setFavorites(List<int> favoriteIds) {
 
 // Clear user session (call on logout)
 void clearUserSession() {
-  print('Clearing user session. Current user: $_currentUserPhone');
-  print('Current cart: ${cartQty.value}');
-  print('Current favorites: ${favorites.value}');
   _currentUserPhone = null;
   cartQty.value = const {};
   favorites.value = const {};
-  print('Session cleared');
 }
 
 void toggleFavorite(int productId) {

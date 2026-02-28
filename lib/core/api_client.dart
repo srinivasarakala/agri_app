@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'token_storage.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class ApiClient {
   final Dio dio;
@@ -20,6 +21,13 @@ class ApiClient {
           final access = await storage.getAccess();
           if (access != null && access.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $access';
+          }
+          // Add X-App-Version header
+          try {
+            final packageInfo = await PackageInfo.fromPlatform();
+            options.headers['X-App-Version'] = packageInfo.version;
+          } catch (_) {
+            options.headers['X-App-Version'] = 'unknown';
           }
           handler.next(options);
         },
@@ -52,6 +60,13 @@ class ApiClient {
             final opts = e.requestOptions;
             opts.extra['retried'] = true;
             opts.headers['Authorization'] = 'Bearer $newAccess';
+            // Add X-App-Version header to retried request
+            try {
+              final packageInfo = await PackageInfo.fromPlatform();
+              opts.headers['X-App-Version'] = packageInfo.version;
+            } catch (_) {
+              opts.headers['X-App-Version'] = 'unknown';
+            }
 
             final response = await dio.fetch(opts);
             return handler.resolve(response);

@@ -1,5 +1,8 @@
 import 'package:dio/dio.dart';
 import '../auth/token_storage.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'dart:developer' as developer;
+import '../../main.dart' show showUpdateRequiredPage;
 
 class DioClient {
   final Dio dio;
@@ -14,9 +17,24 @@ class DioClient {
         if (access != null && access.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $access';
         }
+        // Add X-App-Version header
+        try {
+          // Use package_info_plus to get app version
+          final packageInfo = await PackageInfo.fromPlatform();
+          options.headers['X-App-Version'] = packageInfo.version;
+        } catch (_) {
+          // Fallback if package_info fails
+          options.headers['X-App-Version'] = 'unknown';
+        }
         handler.next(options);
       },
       onError: (e, handler) async {
+        // Handle version mismatch (426) globally
+        if (e.response?.statusCode == 426) {
+          showUpdateRequiredPage();
+          return;
+        }
+
         if (e.response?.statusCode != 401) return handler.next(e);
         if (e.requestOptions.extra['retried'] == true) {
           // Refresh already failed, clear session
@@ -56,6 +74,13 @@ class DioClient {
           final ro = e.requestOptions;
           ro.extra['retried'] = true;
           ro.headers['Authorization'] = 'Bearer $newAccess';
+          // Add X-App-Version header to retried request
+          try {
+            final packageInfo = await PackageInfo.fromPlatform();
+            ro.headers['X-App-Version'] = packageInfo.version;
+          } catch (_) {
+            ro.headers['X-App-Version'] = 'unknown';
+          }
 
           final resp = await dio.fetch(ro);
           return handler.resolve(resp);

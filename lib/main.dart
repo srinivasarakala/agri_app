@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'core/theme/app_theme.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_analytics/observer.dart';
+import 'package:flutter/foundation.dart';
 import 'app_router.dart';
 import 'core/api/dio_client.dart';
 import 'core/auth/token_storage.dart';
@@ -12,6 +17,10 @@ import 'core/cart/cart_service.dart';
 import 'features/profile/profile_service.dart';
 import 'features/finance/ledger_service.dart';
 import 'features/stock/stock_history_service.dart';
+import 'package:flutter/foundation.dart';
+import 'features/update_required_page.dart';
+import 'features/splash/splash_screen.dart';
+import 'package:go_router/go_router.dart';
 
 Session? currentSession;
 
@@ -24,16 +33,28 @@ late final LedgerService ledgerApi;
 late final StockHistoryService stockHistoryApi;
 late final CatalogSearchBus catalogSearchBus;
 
+FirebaseAnalytics? analytics;
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+GoRouter? globalRouter;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase in all modes (debug and release)
+  await Firebase.initializeApp();
+  analytics = FirebaseAnalytics.instance;
 
   // Initialize SharedPreferences for cart storage
   await initCartStorage();
 
   final storage = TokenStorage();
   final client = DioClient(
-    //baseUrl: 'https://myhitechagro.in', // production
-    baseUrl: 'http://10.0.2.2:8000', //lcoal
+    baseUrl: 'https://myhitechagro.in', 
+    // production
+     //baseUrl: 'http://10.0.2.2:8000', //lcoal
+    // baseUrl: 'http://192.168.1.7:8000', 
+    // local IP for testing on real device
     storage: storage,
   );
 
@@ -49,41 +70,31 @@ void main() async {
   runApp(const AgriApp());
 }
 
-class AgriApp extends StatelessWidget {
-  const AgriApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Agri B2B',
-      debugShowCheckedModeBanner: false,
-
-      theme: ThemeData(
-        useMaterial3: false, // fixes many light color issues
-        primarySwatch: Colors.green,
-        scaffoldBackgroundColor: Colors.white,
-        canvasColor: Colors.white,
-        colorScheme: ColorScheme.fromSwatch(
-          primarySwatch: Colors.green,
-        ).copyWith(
-          surface: Colors.white,
-        ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Colors.white,
-          selectedItemColor: Colors.green,
-          unselectedItemColor: Colors.grey,
-          showUnselectedLabels: true,
-        ),
+void showUpdateRequiredPage() {
+  if (globalRouter != null) {
+    globalRouter!.go('/update-required');
+  } else {
+    navigatorKey.currentState?.pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => UpdateRequiredPage(),
       ),
-
-      builder: (context, child) {
-        return ColoredBox(
-          color: Colors.white,
-          child: child ?? const SizedBox(),
-        );
-      },
-
-      routerConfig: buildRouter(),
+      (route) => false,
     );
   }
 }
+
+class AgriApp extends StatelessWidget {
+  const AgriApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final router = buildRouter();
+    globalRouter = router;
+    return MaterialApp.router(
+      routerConfig: router,
+      theme: AppTheme.themeData,
+      // Optionally set navigatorKey if needed for dialogs
+    );
+  }
+}
+

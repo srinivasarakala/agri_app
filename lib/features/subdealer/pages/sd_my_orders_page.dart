@@ -46,7 +46,7 @@ class _SdMyOrdersPageState extends State<SdMyOrdersPage> {
         return Colors.red;
       case 'PENDING':
       default:
-        return Colors.blueGrey;
+        return Colors.green;
     }
   }
 
@@ -62,7 +62,7 @@ class _SdMyOrdersPageState extends State<SdMyOrdersPage> {
         label = 'Pending Delivery';
         break;
       case 'IN_TRANSIT':
-        color = Colors.blue;
+        color = Colors.green;
         icon = Icons.local_shipping;
         label = 'In Transit';
         break;
@@ -197,7 +197,7 @@ class _SdMyOrdersPageState extends State<SdMyOrdersPage> {
                                   style: TextStyle(
                                     color: it.approvedQty > 0
                                         ? Colors.green
-                                        : Colors.blueGrey,
+                                        : Colors.green,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -218,7 +218,7 @@ class _SdMyOrdersPageState extends State<SdMyOrdersPage> {
                                       const Icon(
                                         Icons.local_shipping,
                                         size: 16,
-                                        color: Colors.blue,
+                                        color: Colors.green,
                                       ),
                                       const SizedBox(width: 6),
                                       Text(

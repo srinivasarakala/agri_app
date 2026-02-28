@@ -90,7 +90,6 @@ class _SplashScreenState extends State<SplashScreen>
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) {
                   // Fallback UI if image not found
-                  print('Error loading logo: $error');
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [

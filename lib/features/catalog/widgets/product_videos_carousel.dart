@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../product_video.dart';
 
 class ProductVideosCarousel extends StatefulWidget {
@@ -21,6 +22,38 @@ class ProductVideosCarousel extends StatefulWidget {
 class _ProductVideosCarouselState extends State<ProductVideosCarousel> {
   late PageController _pageController;
   int _currentPage = 0;
+  YoutubePlayerController? _ytController;
+
+  void _showEmbeddedVideo(BuildContext context, String youtubeUrl) {
+    final videoId = YoutubePlayer.convertUrlToId(youtubeUrl);
+    if (videoId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid YouTube URL')),
+      );
+      return;
+    }
+    _ytController = YoutubePlayerController(
+      initialVideoId: videoId,
+      flags: const YoutubePlayerFlags(
+        autoPlay: true,
+        mute: false,
+      ),
+    );
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        contentPadding: EdgeInsets.zero,
+        content: YoutubePlayer(
+          controller: _ytController!,
+          showVideoProgressIndicator: true,
+        ),
+      ),
+    ).then((_) {
+      _ytController?.pause();
+      _ytController?.dispose();
+      _ytController = null;
+    });
+  }
 
   @override
   void initState() {
@@ -31,19 +64,8 @@ class _ProductVideosCarouselState extends State<ProductVideosCarousel> {
   @override
   void dispose() {
     _pageController.dispose();
+    _ytController?.dispose();
     super.dispose();
-  }
-
-  Future<void> _openVideo(BuildContext context, String youtubeUrl) async {
-    try {
-      final uri = Uri.parse(youtubeUrl);
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not open video: $e')),
-      );
-    }
   }
 
   @override
@@ -85,7 +107,7 @@ class _ProductVideosCarouselState extends State<ProductVideosCarousel> {
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 child: _VideoCard(
                   video: video,
-                  onTap: () => _openVideo(context, video.youtubeUrl),
+                  onTap: () => _showEmbeddedVideo(context, video.youtubeUrl),
                 ),
               );
             },

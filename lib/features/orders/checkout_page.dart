@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
 import '../../main.dart';
+import '../../services/analytics_service.dart';
 import '../profile/user_profile.dart';
 import '../catalog/product.dart';
 import '../../core/cart/cart_state.dart';
@@ -134,7 +136,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
           .map((e) => {"product_id": e.key, "qty": e.value.toDouble()})
           .toList();
 
-      await ordersApi.createOrder(items: items);
+      final order = await ordersApi.createOrder(items: items);
+
+      // Log order_created event
+      if (analytics != null) {
+        AnalyticsService(analytics).logOrderPlaced(
+          order.id.toString(),
+          order.items.fold<double>(0, (sum, item) => sum + (item.price * item.requestedQty)),
+        );
+      }
 
       if (!mounted) return;
 
@@ -144,7 +154,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('✓ Order placed successfully!'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppTheme.primaryColor,
         ),
       );
 
@@ -167,11 +177,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: const Text('Checkout'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: AppTheme.backgroundColor,
+        foregroundColor: AppTheme.textColor,
         elevation: 0,
       ),
       body: loading
@@ -181,7 +191,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(error!, style: const TextStyle(color: Colors.red)),
+                  Text(error!, style: TextStyle(color: AppTheme.errorColor)),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _loadProfile,
@@ -197,12 +207,12 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 children: [
                   // Instructions
                   Card(
-                    color: Colors.blue.shade50,
+                    color: AppTheme.primaryColor.withOpacity(0.1),
                     child: Padding(
                       padding: const EdgeInsets.all(12),
                       child: Row(
                         children: [
-                          Icon(Icons.info_outline, color: Colors.blue.shade700),
+                          Icon(Icons.info_outline, color: AppTheme.primaryColor),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
@@ -210,7 +220,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                   ? 'Your delivery information is complete. Review and place your order.'
                                   : 'Please complete your delivery information to place the order.',
                               style: TextStyle(
-                                color: Colors.blue.shade700,
+                                color: AppTheme.secondaryColor,
                                 fontSize: 13,
                               ),
                             ),
@@ -368,7 +378,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                               'Qty: $qty × ₹${product.sellingPrice.toStringAsFixed(2)}',
                                               style: TextStyle(
                                                 fontSize: 12,
-                                                color: Colors.grey.shade600,
+                                                color: AppTheme.textColor.withOpacity(0.6),
                                               ),
                                             ),
                                           ],
@@ -425,7 +435,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.green.shade700,
+                                      color: AppTheme.primaryColor,
                                     ),
                                   ),
                                 ],
@@ -444,10 +454,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
           : Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.backgroundColor,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: AppTheme.textColor.withOpacity(0.1),
                     blurRadius: 4,
                     offset: const Offset(0, -2),
                   ),
@@ -464,7 +474,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           '* All marked fields are required',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.red.shade700,
+                            color: AppTheme.errorColor,
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -474,10 +484,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           ? null
                           : (_isProfileComplete() ? _placeOrder : null),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppTheme.primaryColor,
+                        foregroundColor: AppTheme.backgroundColor,
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        disabledBackgroundColor: Colors.grey.shade300,
+                        disabledBackgroundColor: AppTheme.backgroundColor.withOpacity(0.5),
                         minimumSize: const Size(double.infinity, 50),
                       ),
                       child: placing
@@ -487,7 +497,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                                  AppTheme.backgroundColor,
                                 ),
                               ),
                             )

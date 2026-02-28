@@ -30,17 +30,12 @@ class _AppShellState extends State<AppShell> {
 
   Future<void> _loadUserCartIfNeeded() async {
     // Always try to load cart when AppShell initializes
-    print('[AppShell] Loading cart on init...');
     if (currentSession?.phone != null) {
       try {
-        print('[AppShell] Loading cart for: ${currentSession!.phone}');
         await loadUserCart(currentSession!.phone!);
-        print('[AppShell] Cart loaded successfully');
       } catch (e) {
-        print('[AppShell] Error loading cart: $e');
       }
     } else {
-      print('[AppShell] No session phone found');
     }
   }
 

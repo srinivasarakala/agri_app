@@ -22,11 +22,8 @@ class LogoutButton extends StatelessWidget {
     if (ok != true) return;
 
     // Clear user session (clears in-memory cart/favorites without saving)
-    print('Logging out, clearing session');
     clearUserSession();
-    print('Session cleared, logging out auth');
     await appAuth.logout(); // Clear token storage
-    print('Auth logged out, navigating to login');
     if (!context.mounted) return;
     context.go('/login');
   }

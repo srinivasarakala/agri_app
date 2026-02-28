@@ -38,7 +38,6 @@ class _TopProductsCarouselState extends State<TopProductsCarousel> {
       //   });
       // }
     } catch (e) {
-      print('Error loading top product images: $e');
       setState(() {
         loading = false;
       });

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'product.dart';
 import '../../main.dart';
+import '../../services/analytics_service.dart';
 import '../../core/cart/cart_state.dart';
 import '../shell/app_shell.dart';
 
@@ -22,6 +23,11 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     super.initState();
     currentQty = (cartQty.value[widget.product.id] ?? 0).toInt();
     isFavorite = favorites.value.contains(widget.product.id);
+    // Log product view event
+    AnalyticsService(analytics).logProductView(
+      widget.product.id.toString(),
+      widget.product.name,
+    );
   }
 
   void _updateQuantity(int newQty) {

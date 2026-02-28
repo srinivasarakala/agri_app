@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import '../../main.dart';
 import '../shell/app_shell.dart';
@@ -7,35 +8,46 @@ import '../../core/cart/cart_state.dart';
 
 class OtpPage extends StatefulWidget {
   final String phone;
-  const OtpPage({super.key, required this.phone});
+  final String verificationId;
+  final bool requiresPassword;
+  final void Function(String otp, String? password) onSubmit;
+  const OtpPage({super.key, required this.phone, required this.verificationId, required this.onSubmit, this.requiresPassword = false});
 
   @override
   State<OtpPage> createState() => _OtpPageState();
 }
 
 class _OtpPageState extends State<OtpPage> {
+    int cooldown = 0;
+    late final ValueNotifier<int> cooldownNotifier;
+
+    @override
+    void initState() {
+      super.initState();
+      cooldownNotifier = ValueNotifier<int>(0);
+    }
+
+    void startCooldown() {
+      cooldown = 60;
+      cooldownNotifier.value = cooldown;
+      Future.doWhile(() async {
+        await Future.delayed(const Duration(seconds: 1));
+        cooldown--;
+        cooldownNotifier.value = cooldown;
+        return cooldown > 0;
+      });
+    }
   final otpCtrl = TextEditingController();
+  final passwordCtrl = TextEditingController();
+  bool obscurePassword = true;
   bool loading = false;
   String? error;
 
-  Future<void> verify() async {
-    setState(() { loading = true; error = null; });
-    try {
-      await appAuth.verifyOtp(widget.phone, otpCtrl.text.trim());
-      // Load user's cart and favorites
-      print('OTP verified, loading cart for ${widget.phone}');
-      await loadUserCart(widget.phone);
-      print('Cart loaded, navigating to /app');
-      if (!mounted) return;
-      // Reset to home page tab for both shells
-      appTabIndex.value = 0;
-      subdealerTabIndex.value = 0;
-      context.go('/app');
-    } catch (_) {
-      setState(() => error = 'Invalid OTP');
-    } finally {
-      setState(() => loading = false);
-    }
+  void _submit() {
+    widget.onSubmit(
+      otpCtrl.text.trim(),
+      widget.requiresPassword ? passwordCtrl.text.trim() : null,
+    );
   }
 
   @override
@@ -46,21 +58,57 @@ class _OtpPageState extends State<OtpPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Text('OTP sent to ${widget.phone}'),
+            Text('Enter the OTP sent to ${widget.phone}'),
+            const SizedBox(height: 16),
             TextField(
               controller: otpCtrl,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: '6-digit OTP'),
+              decoration: const InputDecoration(
+                labelText: 'OTP',
+                border: OutlineInputBorder(),
+              ),
             ),
-            const SizedBox(height: 12),
-            if (error != null) Text(error!, style: const TextStyle(color: Colors.red)),
-            const SizedBox(height: 12),
+            if (widget.requiresPassword) ...[
+              const SizedBox(height: 16),
+              StatefulBuilder(
+                builder: (context, setState) => TextField(
+                  controller: passwordCtrl,
+                  obscureText: obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Admin Password',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscurePassword ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => obscurePassword = !obscurePassword),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
             ElevatedButton(
-              onPressed: loading ? null : verify,
-              child: loading
-                  ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Verify'),
-            )
+              onPressed: loading ? null : _submit,
+              child: loading ? const CircularProgressIndicator() : const Text('Verify'),
+            ),
+            if (error != null) ...[
+              const SizedBox(height: 12),
+              Text(error!, style: TextStyle(color: AppTheme.errorColor)),
+            ],
+            const SizedBox(height: 24),
+            ValueListenableBuilder<int>(
+              valueListenable: cooldownNotifier,
+              builder: (context, value, _) {
+                return ElevatedButton(
+                  onPressed: value > 0 ? null : () {
+                    // Call resend OTP logic here
+                    startCooldown();
+                  },
+                  child: value > 0
+                      ? Text('Resend OTP in ${value}s')
+                      : const Text('Resend OTP'),
+                );
+              },
+            ),
           ],
         ),
       ),
