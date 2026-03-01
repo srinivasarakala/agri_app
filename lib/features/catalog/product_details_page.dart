@@ -3,7 +3,6 @@ import 'product.dart';
 import '../../main.dart';
 import '../../services/analytics_service.dart';
 import '../../core/cart/cart_state.dart';
-import '../shell/app_shell.dart';
 
 class ProductDetailsPage extends StatefulWidget {
   final Product product;
@@ -152,6 +151,8 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                   // Product Name
                   Text(
                     widget.product.name,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -472,74 +473,6 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: ValueListenableBuilder<Map<int, int>>(
-        valueListenable: cartQty,
-        builder: (context, cartMap, _) {
-          final cartCount = cartMap.values.fold<int>(0, (a, b) => a + b);
-
-          return ValueListenableBuilder<int>(
-            valueListenable: appTabIndex,
-            builder: (context, currentTab, _) {
-              // Clamp index for bottom nav (0-3), catalog page is index 4
-              final navIndex = currentTab > 3 ? 0 : currentTab;
-              
-              return BottomNavigationBar(
-                currentIndex: navIndex,
-                onTap: (index) {
-                  // Pop the product details page and navigate to selected tab
-                  Navigator.pop(context);
-                  appTabIndex.value = index;
-                },
-                type: BottomNavigationBarType.fixed,
-                items: [
-                  const BottomNavigationBarItem(
-                    icon: Icon(Icons.home),
-                    label: "Home",
-                  ),
-                  const BottomNavigationBarItem(
-                    icon: Icon(Icons.category),
-                    label: "Categories",
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Stack(
-                      alignment: Alignment.topRight,
-                      children: [
-                        const Icon(Icons.shopping_cart),
-                        if (cartCount > 0)
-                          Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color: Colors.red,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 18,
-                              minHeight: 18,
-                            ),
-                            child: Text(
-                              cartCount > 99 ? "99+" : cartCount.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                      ],
-                    ),
-                    label: "Cart",
-                  ),
-                  const BottomNavigationBarItem(
-                    icon: Icon(Icons.menu),
-                    label: "Menu",
-                  ),
-                ],
-              );
-            },
-          );
-        },
       ),
     );
   }

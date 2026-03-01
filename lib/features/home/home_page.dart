@@ -244,7 +244,7 @@ Widget build(BuildContext context) {
           )
         else
           SizedBox(
-            height: 150,
+            height: 222,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: featured.length,
@@ -261,63 +261,59 @@ Widget build(BuildContext context) {
                       ),
                     );
                   },
-                  child: Container(
-                    width: 170,
-                    margin: const EdgeInsets.only(right: 16),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.backgroundColor,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.textColor.withOpacity(0.08),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              width: double.infinity,
-                              color: AppTheme.backgroundColor,
-                              child: product.imageUrl != null &&
-                                      product.imageUrl!.isNotEmpty
-                                  ? Image.network(
-                                      product.imageUrl!,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : Icon(Icons.image,
-                                      size: 48, color: AppTheme.textColor.withOpacity(0.5)),
+                  child: SizedBox(
+                    width: 160,
+                    child: Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 2,
+                      margin: const EdgeInsets.only(right: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                color: Colors.grey.shade100,
+                                height: 120,
+                                width: double.infinity,
+                                child: product.imageUrl != null &&
+                                        product.imageUrl!.isNotEmpty
+                                    ? Image.network(
+                                        product.imageUrl!,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : const Icon(Icons.image,
+                                        size: 48, color: Colors.grey),
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 10),
+                            Text(
+                              product.name,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Rs. ${product.sellingPrice.toStringAsFixed(2)}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.deepOrange,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          product.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Rs. ${product.sellingPrice.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            color: AppTheme.secondaryColor,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        // Removed Spacer for compact layout
-                      ],
+                      ),
                     ),
                   ),
                 );

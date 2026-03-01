@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class UpdateRequiredPage extends StatelessWidget {
   const UpdateRequiredPage({Key? key}) : super(key: key);
@@ -17,13 +16,24 @@ class UpdateRequiredPage extends StatelessWidget {
               SizedBox(height: 24),
               Text(
                 'Update Required',
-                style: Theme.of(context).textTheme.headlineSmall,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               SizedBox(height: 16),
               Text(
-                'A new version of the app is required. Please contact your Administrator to update.',
+                'A newer version of this app is required to continue. '
+                'Please update the app and try again.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              SizedBox(height: 32),
+              Text(
+                'Contact your administrator if the update is not yet available.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey,
+                    ),
               ),
             ],
           ),
@@ -32,3 +42,4 @@ class UpdateRequiredPage extends StatelessWidget {
     );
   }
 }
+

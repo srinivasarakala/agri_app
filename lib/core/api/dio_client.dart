@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart';
 import '../auth/token_storage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:developer' as developer;
@@ -31,11 +32,24 @@ class DioClient {
       onError: (e, handler) async {
         // Handle version mismatch (426) globally
         if (e.response?.statusCode == 426) {
-          showUpdateRequiredPage();
-          return;
+          final path = e.requestOptions.path;
+          // Auth pages handle 426 inline (show error text to the user).
+          // For all other pages, navigate to the full-screen UpdateRequiredPage.
+          if (!path.contains('/auth/')) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              showUpdateRequiredPage();
+            });
+          }
+          return handler.reject(e); // resolve the future so callers don't hang
         }
 
         if (e.response?.statusCode != 401) return handler.next(e);
+        // Never retry auth-related endpoints to avoid infinite loops / stale-token confusion
+        final path = e.requestOptions.path;
+        if (path.contains('/auth/')) {
+          await storage.clear();
+          return handler.next(e);
+        }
         if (e.requestOptions.extra['retried'] == true) {
           // Refresh already failed, clear session
           await storage.clear();

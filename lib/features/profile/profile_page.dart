@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../main.dart';
 import 'user_profile.dart';
 
@@ -316,6 +317,27 @@ class _ProfilePageState extends State<ProfilePage> {
                               ),
                             ),
                     ),
+
+                    // Change Password — only for Dealer Admin
+                    if (_profile?.role == 'DEALER_ADMIN') ...[                      
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: () => context.push('/change-password'),
+                        icon: const Icon(Icons.lock_reset_outlined),
+                        label: const Text(
+                          'Change Password',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.orange.shade700,
+                          side: BorderSide(color: Colors.orange.shade300),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
@@ -7,6 +8,7 @@ import '../../main.dart'; // to access app services
 import '../shell/app_shell.dart'; // for appTabIndex
 import 'firebase_phone_auth_service.dart';
 import 'otp_page.dart';
+import 'set_password_page.dart';
 
 class PhonePage extends StatefulWidget {
   const PhonePage({super.key});
@@ -16,6 +18,13 @@ class PhonePage extends StatefulWidget {
 }
 
 class _PhonePageState extends State<PhonePage> {
+      // Uniform button style for login/OTP actions
+      final ButtonStyle uniformButtonStyle = ElevatedButton.styleFrom(
+        minimumSize: const Size.fromHeight(48),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      );
     // List of known admin/superuser phone numbers
   final phoneCtrl = TextEditingController();
   final passwordCtrl = TextEditingController();
@@ -27,6 +36,8 @@ class _PhonePageState extends State<PhonePage> {
   String? userRole;
 
   String? _verificationId;
+  String? _otpSessionToken;
+  bool _mustSetPassword = false;
 
   String formatPhoneNumber(String input) {
     String trimmed = input.trim();
@@ -44,6 +55,56 @@ class _PhonePageState extends State<PhonePage> {
       error = null;
     });
     final phone = formatPhoneNumber(phoneCtrl.text);
+
+    // --- Whitelist pre-check ---
+    // Only hard-block on an explicit 403 not_whitelisted response.
+    // Any other error (endpoint not deployed yet, network hiccup, etc.) falls
+    // through so the OTP flow continues; the backend verify-otp enforces the
+    // whitelist as the authoritative second layer.
+    try {
+      final checkRes = await appAuth.client.dio.post(
+        '/auth/check-access',
+        data: {'phone': phone},
+        options: Options(contentType: 'application/json'),
+      );
+      if (checkRes.data['allowed'] != true) {
+        if (!mounted) return;
+        setState(() {
+          error = checkRes.data['message'] ??
+              'Access denied. Please contact the administrator for access.';
+          loading = false;
+        });
+        return;
+      }
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      final errorCode = e.response?.data is Map ? e.response?.data['error'] : null;
+      if (status == 426) {
+        if (!mounted) return;
+        setState(() {
+          loading = false;
+          error = 'Please upgrade the app to continue. Contact Administrator for help.';
+        });
+        return;
+      }
+      if (status == 403 && errorCode == 'not_whitelisted') {
+        if (!mounted) return;
+        setState(() {
+          error = (e.response?.data['message'] as String?) ??
+              'Access denied. Please contact the administrator for access.';
+          loading = false;
+        });
+        return;
+      }
+      // Endpoint not deployed yet or other transient error — fall through.
+      // verify-otp on the backend will enforce the whitelist.
+      print('[checkAccess] non-blocking error: $status ${e.message}');
+    } catch (e) {
+      // Unexpected error — fall through for same reason.
+      print('[checkAccess] unexpected error: $e');
+    }
+    // --- End whitelist pre-check ---
+
     final firebaseService = FirebasePhoneAuthService();
     await firebaseService.verifyPhoneNumber(
       phoneNumber: phone,
@@ -129,11 +190,35 @@ class _PhonePageState extends State<PhonePage> {
           Navigator.of(context).pop();
         }
         if (!mounted) return;
+
+        final sessionToken = res.data['otp_session_token'] as String?;
+        final mustSet = res.data['must_set_password'] == true;
+
+        setState(() {
+          _otpSessionToken = sessionToken;
+          _mustSetPassword = mustSet;
+          userRole = res.data['user']?['role'];
+          loading = false;
+        });
+
+        // First-time login: admin has no password yet — go straight to set-password page.
+        if (mustSet && sessionToken != null) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => SetPasswordPage(
+                phone: phone,
+                otpSessionToken: sessionToken,
+                isFirstLogin: true,
+              ),
+            ),
+          );
+          return;
+        }
+
+        // Normal admin with existing password — show password field.
         setState(() {
           showPasswordField = true;
           requiresPassword = true;
-          userRole = res.data['user']?['role'];
-          loading = false;
         });
         return;
       }
@@ -155,7 +240,21 @@ class _PhonePageState extends State<PhonePage> {
       context.go('/app');
     } catch (e) {
       if (!mounted) return;
-      setState(() => error = 'Login failed: ${e.toString()}');
+      if (e is DioException && e.response?.statusCode == 426) {
+        setState(() {
+          loading = false;
+          error = 'Please upgrade the app to continue. Contact Administrator for help.';
+        });
+        return;
+      }
+      String msg;
+      if (e is DioException && e.response?.statusCode == 403) {
+        msg = (e.response?.data is Map ? e.response?.data['message'] : null)
+            ?? 'Access denied. Please contact the administrator for access.';
+      } else {
+        msg = 'Login failed: ${e.toString()}';
+      }
+      setState(() => error = msg);
     } finally {
       if (!mounted) return;
       setState(() => loading = false);
@@ -177,6 +276,13 @@ class _PhonePageState extends State<PhonePage> {
       context.go('/app');
     } catch (e) {
       if (!mounted) return;
+      if (e is DioException && e.response?.statusCode == 426) {
+        setState(() {
+          loading = false;
+          error = 'Please upgrade the app to continue. Contact Administrator for help.';
+        });
+        return;
+      }
       setState(() => error = 'Password verification failed: ${e.toString()}');
     } finally {
       if (!mounted) return;
@@ -188,10 +294,16 @@ class _PhonePageState extends State<PhonePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Login')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            const SizedBox(height: 16),
+            Image.asset(
+              'assets/images/logo.png',
+              height: 90,
+            ),
+            const SizedBox(height: 24),
             Row(
               children: [
                 Container(
@@ -201,12 +313,18 @@ class _PhonePageState extends State<PhonePage> {
                 Expanded(
                   child: TextField(
                     controller: phoneCtrl,
-                    keyboardType: TextInputType.phone,
+                    keyboardType: TextInputType.number,
+                    maxLength: 10,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                    ],
                     decoration: const InputDecoration(
                       labelText: 'Phone number',
                       border: OutlineInputBorder(),
+                      counterText: '',
                     ),
                     enabled: !showPasswordField,
+                    onChanged: (_) => setState(() {}),
                   ),
                 ),
               ],
@@ -242,6 +360,25 @@ class _PhonePageState extends State<PhonePage> {
                   ),
                 ],
               ),
+              // Forgot Password link — only shown when we have a valid OTP session token
+              if (_otpSessionToken != null)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => SetPasswordPage(
+                            phone: formatPhoneNumber(phoneCtrl.text.trim()),
+                            otpSessionToken: _otpSessionToken!,
+                            isFirstLogin: false,
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text('Forgot Password?'),
+                  ),
+                ),
               const SizedBox(height: 16),
             ],
             if (error != null) ...[
@@ -271,13 +408,11 @@ class _PhonePageState extends State<PhonePage> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: loading
-                    ? null
-                    : showPasswordField
-                        ? _submitWithPassword
-                        : sendOtp,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
+                  ? null
+                  : (phoneCtrl.text.length != 10 || showPasswordField)
+                    ? (showPasswordField ? _submitWithPassword : null)
+                    : sendOtp,
+                style: uniformButtonStyle,
                 child: loading
                     ? const SizedBox(
                         height: 20,

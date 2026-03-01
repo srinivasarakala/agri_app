@@ -52,7 +52,7 @@ void main() async {
   final client = DioClient(
     baseUrl: 'https://myhitechagro.in', 
     // production
-     //baseUrl: 'http://10.0.2.2:8000', //lcoal
+    // baseUrl: 'http://10.0.2.2:8000', // local
     // baseUrl: 'http://192.168.1.7:8000', 
     // local IP for testing on real device
     storage: storage,
@@ -93,7 +93,7 @@ class AgriApp extends StatelessWidget {
     return MaterialApp.router(
       routerConfig: router,
       theme: AppTheme.themeData,
-      // Optionally set navigatorKey if needed for dialogs
+      // navigatorKey is attached via GoRouter(navigatorKey: navigatorKey) in app_router.dart
     );
   }
 }
