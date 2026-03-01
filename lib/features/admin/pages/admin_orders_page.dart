@@ -325,7 +325,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
               final ok = await showDialog<bool>(
                 context: context,
                 builder: (_) => AlertDialog(
-                  title: const Text("Search by subdealer phone"),
+                  title: const Text("Search by dealer phone"),
                   content: TextField(
                     controller: searchCtrl,
                     keyboardType: TextInputType.phone,

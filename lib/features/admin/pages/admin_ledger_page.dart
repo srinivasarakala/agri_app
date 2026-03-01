@@ -45,7 +45,7 @@ class _AdminLedgerPageState extends State<AdminLedgerPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Ledger - All Subdealers'),
+        title: const Text('Ledger - All Dealers'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
@@ -91,7 +91,7 @@ class _AdminLedgerPageState extends State<AdminLedgerPage> {
               color: Colors.grey,
             ),
             SizedBox(height: 16),
-            Text('No subdealers found'),
+            Text('No dealers found'),
           ],
         ),
       );

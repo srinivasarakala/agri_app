@@ -3,6 +3,7 @@ import '../../core/api/dio_client.dart';
 import '../../core/auth/session.dart';
 import '../../core/auth/token_storage.dart';
 import '../../main.dart' show analytics;
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
   final DioClient client;
@@ -147,11 +148,33 @@ class AuthService {
   }
 
   Future<void> logout() async {
-    // Read phone before clearing storage
+    // Read tokens before clearing storage
     final data = await storage.readAll();
     final phone = data['phone'];
+    final refresh = data['refresh'];
+
+    // 1. Blacklist the Django refresh token so it can't be reused
+    if (refresh != null && refresh.isNotEmpty) {
+      try {
+        await client.dio.post(
+          '/auth/logout',
+          data: {'refresh': refresh},
+          options: Options(contentType: 'application/json'),
+        );
+      } catch (_) {
+        // Best-effort — even if the request fails, continue with local cleanup
+      }
+    }
+
+    // 2. Sign out of Firebase so the phone session is invalidated on this device
+    try {
+      await FirebaseAuth.instance.signOut();
+    } catch (_) {}
+
+    // 3. Clear local token storage
     await storage.clear();
-    // Log logout event to Firebase Analytics
+
+    // 4. Log logout event to Firebase Analytics
     if (analytics != null) {
       await analytics!.logEvent(
         name: 'logout',
@@ -160,6 +183,6 @@ class AuthService {
         },
       );
     }
-}
+  }
 
 }

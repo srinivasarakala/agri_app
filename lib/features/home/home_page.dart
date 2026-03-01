@@ -20,7 +20,7 @@ import 'widgets/top_products_carousel.dart';
 import '../shell/app_shell.dart'; // for appTabIndex
 
 class HomePage extends StatefulWidget {
-  final String role; // "DEALER_ADMIN" or "SUBDEALER"
+  final String role; // "Admin" or "Dealer"
   const HomePage({super.key, required this.role});
 
   @override

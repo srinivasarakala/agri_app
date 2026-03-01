@@ -56,6 +56,12 @@ class _PhonePageState extends State<PhonePage> {
     });
     final phone = formatPhoneNumber(phoneCtrl.text);
 
+    // Fetch device info early so we can send device_id to check-access
+    Map<String, dynamic> deviceInfo = {};
+    try {
+      deviceInfo = await DeviceService().getDeviceInfo();
+    } catch (_) {}
+
     // --- Whitelist pre-check ---
     // Only hard-block on an explicit 403 not_whitelisted response.
     // Any other error (endpoint not deployed yet, network hiccup, etc.) falls
@@ -64,7 +70,10 @@ class _PhonePageState extends State<PhonePage> {
     try {
       final checkRes = await appAuth.client.dio.post(
         '/auth/check-access',
-        data: {'phone': phone},
+        data: {
+          'phone': phone,
+          if (deviceInfo['device_id'] != null) 'device_id': deviceInfo['device_id'],
+        },
         options: Options(contentType: 'application/json'),
       );
       if (checkRes.data['allowed'] != true) {
@@ -96,6 +105,15 @@ class _PhonePageState extends State<PhonePage> {
         });
         return;
       }
+      if (status == 403 && errorCode == 'device_blocked') {
+        if (!mounted) return;
+        setState(() {
+          error = (e.response?.data['message'] as String?) ??
+              'This device has been blocked. Please contact the administrator.';
+          loading = false;
+        });
+        return;
+      }
       // Endpoint not deployed yet or other transient error — fall through.
       // verify-otp on the backend will enforce the whitelist.
       print('[checkAccess] non-blocking error: $status ${e.message}');
@@ -120,9 +138,7 @@ class _PhonePageState extends State<PhonePage> {
               phone: phone,
               verificationId: verificationId,
               requiresPassword: false, // always false for OTP step
-              onSubmit: (otp, _) async {
-                await _verifyOtpAndLogin(otp);
-              },
+              onSubmit: (otp, _) => _verifyOtpAndLogin(otp),
             ),
           ),
         );
@@ -144,12 +160,8 @@ class _PhonePageState extends State<PhonePage> {
     );
   }
 
-  Future<void> _verifyOtpAndLogin(String otp) async {
-    if (!mounted) return;
-    setState(() {
-      loading = true;
-      error = null;
-    });
+  /// Returns null on success (navigation happened), or an error string.
+  Future<String?> _verifyOtpAndLogin(String otp) async {
     final phone = formatPhoneNumber(phoneCtrl.text.trim());
     final firebaseService = FirebasePhoneAuthService();
     try {
@@ -157,23 +169,9 @@ class _PhonePageState extends State<PhonePage> {
         verificationId: _verificationId!,
         smsCode: otp,
       );
-      if (userCred == null) {
-        if (!mounted) return;
-        setState(() {
-          error = 'Invalid OTP';
-          loading = false;
-        });
-        return;
-      }
+      if (userCred == null) return 'Invalid OTP. Please try again.';
       final idToken = await firebaseService.getIdToken();
-      if (idToken == null) {
-        if (!mounted) return;
-        setState(() {
-          error = 'Failed to get Firebase token';
-          loading = false;
-        });
-        return;
-      }
+      if (idToken == null) return 'Failed to get Firebase token. Please retry.';
       final deviceInfo = await DeviceService().getDeviceInfo();
       final res = await appAuth.client.dio.post(
         '/auth/verify-otp',
@@ -186,10 +184,10 @@ class _PhonePageState extends State<PhonePage> {
         options: Options(contentType: 'application/json'),
       );
       if (res.data['requires_password'] == true) {
-        if (Navigator.of(context).canPop()) {
+        if (mounted && Navigator.of(context).canPop()) {
           Navigator.of(context).pop();
         }
-        if (!mounted) return;
+        if (!mounted) return null;
 
         final sessionToken = res.data['otp_session_token'] as String?;
         final mustSet = res.data['must_set_password'] == true;
@@ -198,10 +196,8 @@ class _PhonePageState extends State<PhonePage> {
           _otpSessionToken = sessionToken;
           _mustSetPassword = mustSet;
           userRole = res.data['user']?['role'];
-          loading = false;
         });
 
-        // First-time login: admin has no password yet — go straight to set-password page.
         if (mustSet && sessionToken != null) {
           Navigator.of(context).push(
             MaterialPageRoute(
@@ -212,17 +208,16 @@ class _PhonePageState extends State<PhonePage> {
               ),
             ),
           );
-          return;
+          return null; // navigation handled
         }
 
-        // Normal admin with existing password — show password field.
         setState(() {
           showPasswordField = true;
           requiresPassword = true;
         });
-        return;
+        return null; // navigation handled (password field shown)
       }
-      // Normal user: save session
+      // Normal user: save session and navigate
       final access = res.data['access'] as String;
       final refresh = res.data['refresh'] as String;
       final user = res.data['user'] as Map<String, dynamic>;
@@ -235,29 +230,19 @@ class _PhonePageState extends State<PhonePage> {
         subdealerId: subdealerId,
         phone: phone,
       );
-      if (!mounted) return;
+      if (!mounted) return null;
       appTabIndex.value = 0;
       context.go('/app');
+      return null;
     } catch (e) {
-      if (!mounted) return;
       if (e is DioException && e.response?.statusCode == 426) {
-        setState(() {
-          loading = false;
-          error = 'Please upgrade the app to continue. Contact Administrator for help.';
-        });
-        return;
+        return 'Please upgrade the app to continue. Contact Administrator for help.';
       }
-      String msg;
       if (e is DioException && e.response?.statusCode == 403) {
-        msg = (e.response?.data is Map ? e.response?.data['message'] : null)
+        return (e.response?.data is Map ? e.response?.data['message'] : null)
             ?? 'Access denied. Please contact the administrator for access.';
-      } else {
-        msg = 'Login failed: ${e.toString()}';
       }
-      setState(() => error = msg);
-    } finally {
-      if (!mounted) return;
-      setState(() => loading = false);
+      return 'Login failed. Please try again.';
     }
   }
 
@@ -283,7 +268,18 @@ class _PhonePageState extends State<PhonePage> {
         });
         return;
       }
-      setState(() => error = 'Password verification failed: ${e.toString()}');
+      if (e is DioException) {
+        final status = e.response?.statusCode;
+        setState(() => error = switch (status) {
+          401 => 'Incorrect password. Please try again.',
+          403 => 'Access denied. Your account does not have admin privileges.',
+          404 => 'Account not found. Please contact your Administrator.',
+          429 => 'Too many failed attempts. Please wait and try again.',
+          _ => 'Login failed. Please check your credentials and try again.',
+        });
+      } else {
+        setState(() => error = 'Something went wrong. Please try again.');
+      }
     } finally {
       if (!mounted) return;
       setState(() => loading = false);
@@ -295,15 +291,15 @@ class _PhonePageState extends State<PhonePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Login')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
           children: [
-            const SizedBox(height: 16),
+            const SizedBox(height: 32),
             Image.asset(
               'assets/images/logo.png',
-              height: 90,
+              height: 120,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 36),
             Row(
               children: [
                 Container(

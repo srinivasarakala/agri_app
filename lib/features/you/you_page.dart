@@ -50,7 +50,7 @@ class YouPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = role == "DEALER_ADMIN";
+    final isAdmin = role == "Admin";
 
     return ListView(
       padding: EdgeInsets.zero,

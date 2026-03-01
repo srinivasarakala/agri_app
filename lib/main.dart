@@ -83,6 +83,13 @@ void showUpdateRequiredPage() {
   }
 }
 
+/// Called when the backend reports this device has been blocked.
+/// Clears all local state and returns the user to the login screen.
+void showDeviceBlockedPage() {
+  currentSession = null;
+  globalRouter?.go('/login');
+}
+
 class AgriApp extends StatelessWidget {
   const AgriApp({Key? key}) : super(key: key);
 

@@ -56,7 +56,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         await appAuth.storage.saveSession(
           access: newAccess,
           refresh: newRefresh,
-          role: existing['role'] ?? 'DEALER_ADMIN',
+          role: existing['role'] ?? 'Admin',
           subdealerId: int.tryParse(existing['subdealer_id'] ?? ''),
           phone: existing['phone'],
         );

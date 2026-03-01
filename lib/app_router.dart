@@ -41,7 +41,7 @@ GoRouter buildRouter({FirebaseAnalytics? analytics}) {
         path: '/app',
         builder: (_, __) {
           // currentSession is set by redirect()
-          final role = currentSession?.role ?? "SUBDEALER";
+          final role = currentSession?.role ?? "Dealer";
           return AppShell(role: role); // ✅ NO const
         },
       ),

@@ -319,7 +319,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
 
                     // Change Password — only for Dealer Admin
-                    if (_profile?.role == 'DEALER_ADMIN') ...[                      
+                    if (_profile?.role == 'Admin') ...[                      
                       const SizedBox(height: 16),
                       OutlinedButton.icon(
                         onPressed: () => context.push('/change-password'),

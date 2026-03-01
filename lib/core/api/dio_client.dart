@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../auth/token_storage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:developer' as developer;
-import '../../main.dart' show showUpdateRequiredPage;
+import '../../main.dart' show showUpdateRequiredPage, showDeviceBlockedPage;
 
 class DioClient {
   final Dio dio;
@@ -43,6 +43,18 @@ class DioClient {
           return handler.reject(e); // resolve the future so callers don't hang
         }
 
+        // Handle device blocked (403 device_blocked) — clear session immediately,
+        // do NOT attempt a token refresh (the new token would still be blocked).
+        final responseData = e.response?.data;
+        final errorCode = responseData is Map ? responseData['error'] : null;
+        if (e.response?.statusCode == 403 && errorCode == 'device_blocked') {
+          await storage.clear();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            showDeviceBlockedPage();
+          });
+          return handler.reject(e);
+        }
+
         if (e.response?.statusCode != 401) return handler.next(e);
         // Never retry auth-related endpoints to avoid infinite loops / stale-token confusion
         final path = e.requestOptions.path;
@@ -80,7 +92,7 @@ class DioClient {
           await storage.saveSession(
             access: newAccess,
             refresh: refresh,
-            role: data['role'] ?? 'SUBDEALER',
+            role: data['role'] ?? 'Dealer',
             subdealerId: int.tryParse(data['subdealer_id'] ?? ''),
           );
 

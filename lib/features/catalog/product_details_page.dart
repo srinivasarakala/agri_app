@@ -1,4 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'product.dart';
 import '../../main.dart';
 import '../../services/analytics_service.dart';
@@ -48,6 +52,38 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     }
   }
 
+  Future<void> _shareProduct() async {
+    final p = widget.product;
+    final msg = StringBuffer();
+    msg.writeln('🌾 *${p.name}*');
+    if (p.brand != null && p.brand!.isNotEmpty) msg.writeln('Brand: ${p.brand}');
+    msg.writeln('💰 ₹${p.sellingPrice.toStringAsFixed(2)} per ${p.unit}');
+    if (p.mrp > p.sellingPrice) {
+      final disc = ((p.mrp - p.sellingPrice) / p.mrp * 100).toStringAsFixed(0);
+      msg.writeln('🏷 MRP ₹${p.mrp.toStringAsFixed(2)} ($disc% OFF)');
+    }
+    if (p.description != null && p.description!.isNotEmpty) {
+      msg.writeln('\n${p.description}');
+    }
+    msg.writeln('\n📦 Pavan HiTech Agro');
+
+    if (p.imageUrl != null && p.imageUrl!.isNotEmpty) {
+      try {
+        final response = await Dio().get<List<int>>(
+          p.imageUrl!,
+          options: Options(responseType: ResponseType.bytes),
+        );
+        final dir = await getTemporaryDirectory();
+        final ext = p.imageUrl!.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
+        final file = File('\${dir.path}/share_product_\${p.id}.$ext');
+        await file.writeAsBytes(response.data!);
+        await Share.shareXFiles([XFile(file.path)], text: msg.toString());
+        return;
+      } catch (_) {}
+    }
+    await Share.share(msg.toString());
+  }
+
   Future<void> _toggleFavorite() async {
     try {
       await catalogApi.toggleFavorite(widget.product.id);
@@ -93,18 +129,26 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
               color: Colors.white,
               padding: const EdgeInsets.fromLTRB(8, 48, 8, 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
                     icon: const Icon(Icons.arrow_back),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  const Text(
-                    'Product Details',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                  const Expanded(
+                    child: Center(
+                      child: Text(
+                        'Product Details',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.share_rounded),
+                    tooltip: 'Share',
+                    onPressed: _shareProduct,
                   ),
                   IconButton(
                     icon: Icon(

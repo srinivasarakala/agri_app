@@ -1,5 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../main.dart';
 
 class TopProductsCarousel extends StatefulWidget {
@@ -152,6 +156,22 @@ class _ImageCard extends StatelessWidget {
 
   const _ImageCard({required this.imageUrl});
 
+  Future<void> _share(BuildContext context) async {
+    const text = '🌾 Check out our top products at Pavan HiTech Agro!';
+    try {
+      final response = await Dio().get<List<int>>(
+        imageUrl,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final dir = await getTemporaryDirectory();
+      final file = File('\${dir.path}/top_product_\${imageUrl.hashCode}.jpg');
+      await file.writeAsBytes(response.data!);
+      await Share.shareXFiles([XFile(file.path)], text: text);
+    } catch (_) {
+      await Share.share(text);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -160,33 +180,54 @@ class _ImageCard extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: Image.network(
-          imageUrl,
-          fit: BoxFit.contain,
-          width: double.infinity,
-          height: double.infinity,
-          cacheWidth: 800,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Center(
-              child: CircularProgressIndicator(
-                value: loadingProgress.expectedTotalBytes != null
-                    ? loadingProgress.cumulativeBytesLoaded /
-                          loadingProgress.expectedTotalBytes!
-                    : null,
-              ),
-            );
-          },
-          errorBuilder: (_, __, ___) => Container(
-            color: Colors.grey.shade200,
-            child: Center(
-              child: Icon(
-                Icons.image_outlined,
-                size: 80,
-                color: Colors.grey.shade400,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(
+              imageUrl,
+              fit: BoxFit.contain,
+              width: double.infinity,
+              height: double.infinity,
+              cacheWidth: 800,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                        : null,
+                  ),
+                );
+              },
+              errorBuilder: (_, __, ___) => Container(
+                color: Colors.grey.shade200,
+                child: Center(
+                  child: Icon(
+                    Icons.image_outlined,
+                    size: 80,
+                    color: Colors.grey.shade400,
+                  ),
+                ),
               ),
             ),
-          ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Material(
+                color: Colors.transparent,
+                child: IconButton(
+                  icon: const Icon(Icons.share_rounded, color: Colors.white),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black38,
+                    padding: const EdgeInsets.all(6),
+                    minimumSize: const Size(36, 36),
+                  ),
+                  onPressed: () => _share(context),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

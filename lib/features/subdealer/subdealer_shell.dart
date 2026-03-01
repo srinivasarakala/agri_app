@@ -30,7 +30,7 @@ class _SubdealerShellState extends State<SubdealerShell> {
       builder: (_, index, __) {
         return Scaffold(
           appBar: AppBar(
-            title: Text('Subdealer • ${titles[index]}'),
+            title: Text('Dealer • ${titles[index]}'),
             actions: const [LogoutButton()],
           ),
           body: pages[index],
