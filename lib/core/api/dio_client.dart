@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 import '../auth/token_storage.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'dart:developer' as developer;
-import '../../main.dart' show showUpdateRequiredPage, showDeviceBlockedPage;
+import '../../main.dart' show showUpdateRequiredPage, showDeviceBlockedPage, showSessionExpiredPage;
 
 class DioClient {
   final Dio dio;
@@ -63,8 +63,11 @@ class DioClient {
           return handler.next(e);
         }
         if (e.requestOptions.extra['retried'] == true) {
-          // Refresh already failed, clear session
+          // Refresh already failed, clear session and redirect to login
           await storage.clear();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            showSessionExpiredPage();
+          });
           return handler.next(e);
         }
 
@@ -72,6 +75,9 @@ class DioClient {
         final refresh = data['refresh'];
         if (refresh == null || refresh.isEmpty) {
           await storage.clear();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            showSessionExpiredPage();
+          });
           return handler.next(e);
         }
 
@@ -83,15 +89,22 @@ class DioClient {
           );
 
           final newAccess = r.data['access'] as String?;
+          // ROTATE_REFRESH_TOKENS=True means the backend also returns a new
+          // refresh token and blacklists the old one. Must save it or every
+          // subsequent refresh will fail with 401 (blacklisted token).
+          final newRefresh = r.data['refresh'] as String? ?? refresh;
           if (newAccess == null || newAccess.isEmpty) {
             await storage.clear();
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              showSessionExpiredPage();
+            });
             return handler.next(e);
           }
 
-          // save new access, keep refresh + role values intact
+          // save both new access AND new refresh tokens
           await storage.saveSession(
             access: newAccess,
-            refresh: refresh,
+            refresh: newRefresh,
             role: data['role'] ?? 'Dealer',
             subdealerId: int.tryParse(data['subdealer_id'] ?? ''),
           );
@@ -111,8 +124,11 @@ class DioClient {
           final resp = await dio.fetch(ro);
           return handler.resolve(resp);
         } catch (_) {
-          // Refresh token is invalid/expired, clear session
+          // Refresh token is invalid/expired, clear session and redirect to login
           await storage.clear();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            showSessionExpiredPage();
+          });
           return handler.next(e);
         }
       },

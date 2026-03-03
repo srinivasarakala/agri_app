@@ -604,9 +604,15 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
     descriptionCtrl = TextEditingController(
       text: widget.product?.description ?? '',
     );
-    selectedBrandId = widget.product?.brand != null
-      ? int.tryParse(widget.product!.brand.toString())
-      : null;
+    if (widget.product?.brand != null) {
+      final matchingBrands = widget.brands
+          .cast<Map<String, dynamic>>()
+          .where((b) => b['name'] == widget.product!.brand)
+          .toList();
+      selectedBrandId = matchingBrands.isNotEmpty
+          ? matchingBrands.first['id'] as int?
+          : null;
+    }
     unitCtrl = TextEditingController(text: widget.product?.unit ?? 'pcs');
     mrpCtrl = TextEditingController(
       text: widget.product?.mrp.toStringAsFixed(2) ?? '',
@@ -624,7 +630,12 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
     isActive = widget.product?.isActive ?? true;
 
     if (widget.categories.isNotEmpty) {
-      selectedCategory = widget.categories.first;
+      final matchingCats = widget.categories
+          .where((c) => c.id == widget.product?.categoryId)
+          .toList();
+      selectedCategory = matchingCats.isNotEmpty
+          ? matchingCats.first
+          : widget.categories.first;
     }
   }
 

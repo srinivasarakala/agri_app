@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../home/home_page.dart';
 import '../you/you_page.dart';
@@ -59,7 +60,40 @@ class _AppShellState extends State<AppShell> {
             // Clamp index for bottom nav (0-3), but allow 4 for hidden catalog page
             final navIndex = index > 3 ? 0 : index;
 
-            return Scaffold(
+            return PopScope(
+              canPop: false,
+              onPopInvokedWithResult: (didPop, _) async {
+                if (didPop) return;
+                // If not on Home tab, navigate back to Home
+                if (index != 0) {
+                  appTabIndex.value = 0;
+                  return;
+                }
+                // On Home tab — ask exit confirmation
+                final shouldExit = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Exit App'),
+                    content: const Text('Are you sure you want to exit?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(false),
+                        child: const Text('Cancel'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => Navigator.of(ctx).pop(true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Exit'),
+                      ),
+                    ],
+                  ),
+                );
+                if (shouldExit == true) exit(0);
+              },
+              child: Scaffold(
               // ✅ No AppBar (top should be only banner inside pages)
               body: IndexedStack(index: index, children: pages),
               bottomNavigationBar: BottomNavigationBar(
@@ -111,7 +145,8 @@ class _AppShellState extends State<AppShell> {
                   ),
                 ],
               ),
-            );
+            ),  // end Scaffold
+            );  // end PopScope
           },
         );
       },

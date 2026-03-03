@@ -43,7 +43,7 @@ class _BrandProductsPageState extends State<BrandProductsPage> {
     });
     try {
       final all = await catalogApi.listProducts();
-      products = all.where((p) => p.brand != null && p.brand!.isNotEmpty && int.tryParse(p.brand!) == widget.brandId).toList();
+      products = all.where((p) => p.brand == widget.brandName).toList();
       allBrands = all.map((p) => p.brand ?? '').where((b) => b.isNotEmpty).toSet().toList();
       _applyFilters();
     } catch (e) {

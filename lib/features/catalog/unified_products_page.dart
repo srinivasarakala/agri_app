@@ -70,9 +70,8 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
       final all = await catalogApi.listProducts();
       products = all.where((p) {
         bool matches = true;
-        if (widget.brandId != null) {
-          // Compare brand as string, since Product.brand is a string
-          matches = matches && (p.brand != null && p.brand!.isNotEmpty && int.tryParse(p.brand!) == widget.brandId);
+        if (widget.brandName != null) {
+          matches = matches && (p.brand == widget.brandName);
         }
         if (widget.categoryId != null) {
           matches = matches && (p.categoryId == widget.categoryId);

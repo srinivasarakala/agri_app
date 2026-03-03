@@ -47,7 +47,7 @@ class Product {
         sku: (j['sku'] ?? '').toString(),
         name: (j['name'] ?? '').toString(),
         description: j['description']?.toString(),
-        brand: j['brand']?.toString(),
+        brand: j['brand_name']?.toString(),
         unit: (j['unit'] ?? 'pcs').toString(),
         mrp: _toDouble(j['mrp']),
         sellingPrice: _toDouble(j['selling_price']),

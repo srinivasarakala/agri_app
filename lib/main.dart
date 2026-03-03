@@ -3,7 +3,6 @@ import 'core/theme/app_theme.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_analytics/observer.dart';
-import 'package:flutter/foundation.dart';
 import 'app_router.dart';
 import 'core/api/dio_client.dart';
 import 'core/auth/token_storage.dart';
@@ -18,6 +17,8 @@ import 'features/profile/profile_service.dart';
 import 'features/finance/ledger_service.dart';
 import 'features/stock/stock_history_service.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'features/update_required_page.dart';
 import 'features/splash/splash_screen.dart';
 import 'package:go_router/go_router.dart';
@@ -38,6 +39,25 @@ FirebaseAnalytics? analytics;
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 GoRouter? globalRouter;
 
+/// Returns the correct backend base URL for debug runs:
+/// - Android emulator  → http://10.0.2.2:8000   (host loopback alias)
+/// - iOS simulator     → http://127.0.0.1:8000
+/// - Real device       → http://192.168.1.7:8000 (your local Wi-Fi IP)
+Future<String> _resolveBaseUrl() async {
+  const realDeviceUrl = 'http://192.168.1.7:8000';
+  try {
+    final info = DeviceInfoPlugin();
+    if (Platform.isAndroid) {
+      final android = await info.androidInfo;
+      return android.isPhysicalDevice ? realDeviceUrl : 'http://10.0.2.2:8000';
+    } else if (Platform.isIOS) {
+      final ios = await info.iosInfo;
+      return ios.isPhysicalDevice ? realDeviceUrl : 'http://127.0.0.1:8000';
+    }
+  } catch (_) {}
+  return realDeviceUrl;
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -50,11 +70,9 @@ void main() async {
 
   final storage = TokenStorage();
   final client = DioClient(
-    baseUrl: 'https://myhitechagro.in', 
-    // production
-    // baseUrl: 'http://10.0.2.2:8000', // local
-    // baseUrl: 'http://192.168.1.7:8000', 
-    // local IP for testing on real device
+    baseUrl: kReleaseMode
+        ? 'https://myhitechagro.in'          // release build  → cloud
+        : await _resolveBaseUrl(),           // debug           → auto-detect
     storage: storage,
   );
 
@@ -86,6 +104,13 @@ void showUpdateRequiredPage() {
 /// Called when the backend reports this device has been blocked.
 /// Clears all local state and returns the user to the login screen.
 void showDeviceBlockedPage() {
+  currentSession = null;
+  globalRouter?.go('/login');
+}
+
+/// Called when the JWT access token has expired and the refresh token is also
+/// expired or invalid. Clears all local state and returns the user to login.
+void showSessionExpiredPage() {
   currentSession = null;
   globalRouter?.go('/login');
 }
