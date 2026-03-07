@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../main.dart';
 import '../../catalog/product.dart';
 import '../../catalog/category.dart';
@@ -467,12 +468,12 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                                       )
                                     : (p.imageUrl != null &&
                                             p.imageUrl!.isNotEmpty
-                                        ? Image.network(
-                                            p.imageUrl!,
+                                        ? CachedNetworkImage(
+                                            imageUrl: p.imageUrl!,
                                             width: 50,
                                             height: 50,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) =>
+                                            errorWidget: (_, __, ___) =>
                                                 const Icon(Icons.image),
                                           )
                                         : const Icon(Icons.image)),
@@ -768,36 +769,19 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
               ),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: skuCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'SKU',
-                      hintText: 'Auto if empty',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    value: selectedBrandId,
-                    decoration: const InputDecoration(
-                      labelText: 'Brand',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: widget.brands
-                        .map((b) => DropdownMenuItem(
-                              value: int.parse(b['id'].toString()),
-                              child: Text(b['name']),
-                            ))
-                        .toList(),
-                    onChanged: (v) => setState(() => selectedBrandId = v),
-                  ),
-                ),
-              ],
+            DropdownButtonFormField<int>(
+              value: selectedBrandId,
+              decoration: const InputDecoration(
+                labelText: 'Brand',
+                border: OutlineInputBorder(),
+              ),
+              items: widget.brands
+                  .map((b) => DropdownMenuItem(
+                        value: int.parse(b['id'].toString()),
+                        child: Text(b['name']),
+                      ))
+                  .toList(),
+              onChanged: (v) => setState(() => selectedBrandId = v),
             ),
             const SizedBox(height: 12),
             Row(
@@ -928,11 +912,11 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                     ),
                   ] else if (widget.product?.imageUrl != null &&
                       widget.product!.imageUrl!.isNotEmpty) ...[
-                    Image.network(
-                      widget.product!.imageUrl!,
+                    CachedNetworkImage(
+                      imageUrl: widget.product!.imageUrl!,
                       height: 150,
                       fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) =>
+                      errorWidget: (_, __, ___) =>
                           const Icon(Icons.image, size: 50),
                     ),
                     const SizedBox(height: 8),

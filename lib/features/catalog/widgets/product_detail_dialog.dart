@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../product.dart';
 import '../../../core/cart/cart_state.dart';
 
@@ -38,12 +39,12 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(16),
                 ),
-                child: Image.network(
-                  product.imageUrl!,
+                child: CachedNetworkImage(
+                  imageUrl: product.imageUrl!,
                   height: 200,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorWidget: (_, __, ___) => Container(
                     height: 200,
                     color: Colors.grey.shade200,
                     child: const Icon(

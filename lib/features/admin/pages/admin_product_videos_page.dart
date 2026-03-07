@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../main.dart';
 import '../../catalog/product_video.dart';
 
@@ -124,12 +125,12 @@ class _AdminProductVideosPageState extends State<AdminProductVideosPage> {
                 itemBuilder: (context, i) {
                   final v = items[i];
                   return ListTile(
-                    leading: Image.network(
-                      v.thumbnailUrl,
+                    leading: CachedNetworkImage(
+                      imageUrl: v.thumbnailUrl,
                       width: 80,
                       height: 50,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
+                      errorWidget: (_, __, ___) =>
                           const Icon(Icons.video_library),
                     ),
                     title: Text(v.title),
@@ -276,8 +277,10 @@ class _VideoFormSheetState extends State<VideoFormSheet> {
             TextField(
               controller: youtubeUrlCtrl,
               decoration: const InputDecoration(
-                labelText: 'YouTube URL *',
-                hintText: 'https://youtube.com/watch?v=...',
+                labelText: 'YouTube Video URL *',
+                hintText: 'https://youtube.com/watch?v=... or /shorts/...',
+                helperText: 'Paste a VIDEO link (not channel or playlist)',
+                helperMaxLines: 2,
                 border: OutlineInputBorder(),
               ),
             ),

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../home/home_page.dart';
 import '../menu/menu_page.dart';
 import '../../core/cart/cart_state.dart';
@@ -270,10 +271,10 @@ class _CartPageState extends State<_CartPage> {
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
                                         child: p.imageUrl != null && p.imageUrl!.isNotEmpty
-                                            ? Image.network(
-                                                p.imageUrl!,
+                                            ? CachedNetworkImage(
+                                                imageUrl: p.imageUrl!,
                                                 fit: BoxFit.cover,
-                                                errorBuilder:
+                                                errorWidget:
                                                     (_, __, ___) => const Icon(
                                                   Icons.image,
                                                   size: 40,
@@ -644,8 +645,8 @@ class _FavoritesPageState extends State<FavoritesPage> {
                                         child:
                                             (p.imageUrl != null &&
                                                 p.imageUrl!.isNotEmpty)
-                                            ? Image.network(
-                                                p.imageUrl!,
+                                            ? CachedNetworkImage(
+                                                imageUrl: p.imageUrl!,
                                                 fit: BoxFit.cover,
                                               )
                                             : const Icon(

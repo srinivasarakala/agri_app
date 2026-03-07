@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../catalog/brand.dart';
 import '../../main.dart';
 
@@ -62,12 +63,12 @@ class _BrandsPageState extends State<BrandsPage> {
                       child: Column(
                         children: [
                           brand.imageUrl != null && brand.imageUrl!.isNotEmpty
-                              ? Image.network(
-                                  brand.imageUrl!,
+                              ? CachedNetworkImage(
+                                  imageUrl: brand.imageUrl!,
                                   width: 100,
                                   height: 100,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(Icons.store),
+                                  errorWidget: (_, __, ___) => const Icon(Icons.store),
                                 )
                               : const Icon(Icons.store, size: 100),
                           const SizedBox(height: 8),

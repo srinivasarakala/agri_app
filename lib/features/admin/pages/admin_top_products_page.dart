@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../main.dart';
 
 class AdminTopProductsPage extends StatefulWidget {
@@ -234,13 +235,12 @@ class _AdminTopProductsPageState extends State<AdminTopProductsPage> {
                                     // Image preview
                                     ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(
-                                        topProductImages[index],
+                                      child: CachedNetworkImage(
+                                        imageUrl: topProductImages[index],
                                         width: 100,
                                         height: 100,
                                         fit: BoxFit.cover,
-                                        cacheWidth: 300,
-                                        errorBuilder: (_, __, ___) => Container(
+                                        errorWidget: (_, __, ___) => Container(
                                           width: 100,
                                           height: 100,
                                           color: Colors.grey.shade200,

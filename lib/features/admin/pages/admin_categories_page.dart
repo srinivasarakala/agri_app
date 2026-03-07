@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../main.dart';
 import '../../catalog/category.dart';
 
@@ -126,12 +127,12 @@ class _AdminCategoriesPageState extends State<AdminCategoriesPage> {
                           child: Card(
                             child: ListTile(
                               leading: cat.imageUrl != null && cat.imageUrl!.isNotEmpty
-                                  ? Image.network(
-                                      cat.imageUrl!,
+                                  ? CachedNetworkImage(
+                                      imageUrl: cat.imageUrl!,
                                       width: 50,
                                       height: 50,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
+                                      errorWidget: (_, __, ___) =>
                                           const Icon(Icons.category),
                                     )
                                   : const Icon(Icons.category),
@@ -306,11 +307,11 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
                 pickedImage != null
                     ? Image.file(File(pickedImage!.path), width: 50, height: 50)
                     : widget.category?.imageUrl != null && widget.category!.imageUrl!.isNotEmpty
-                        ? Image.network(
-                            widget.category!.imageUrl!,
+                        ? CachedNetworkImage(
+                            imageUrl: widget.category!.imageUrl!,
                             width: 50,
                             height: 50,
-                            errorBuilder: (_, __, ___) => const Icon(Icons.category),
+                            errorWidget: (_, __, ___) => const Icon(Icons.category),
                           )
                         : Container(width: 50, height: 50, color: Colors.grey[300]),
                 const SizedBox(width: 16),

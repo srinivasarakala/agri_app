@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../main.dart' show baseUrl, catalogApi;
 import '../../catalog/brand.dart';
 
@@ -116,12 +117,12 @@ class _AdminBrandsPageState extends State<AdminBrandsPage> {
                           child: Card(
                             child: ListTile(
                               leading: brand.imageUrl != null && brand.imageUrl!.isNotEmpty
-                                  ? Image.network(
-                                      brand.imageUrl ?? '',
+                                  ? CachedNetworkImage(
+                                      imageUrl: brand.imageUrl ?? '',
                                       width: 50,
                                       height: 50,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const Icon(Icons.store),
+                                      errorWidget: (_, __, ___) => const Icon(Icons.store),
                                     )
                                   : const Icon(Icons.store),
                               title: Text(brand.name),
@@ -286,7 +287,7 @@ class _BrandFormSheetState extends State<BrandFormSheet> {
                 pickedImage != null
                   ? Image.file(File(pickedImage!.path), width: 50, height: 50)
                   : widget.brand?.imageUrl != null && widget.brand!.imageUrl!.isNotEmpty
-                    ? Image.network(widget.brand!.imageUrl!, width: 50, height: 50, errorBuilder: (_, __, ___) => const Icon(Icons.store))
+                    ? CachedNetworkImage(imageUrl: widget.brand!.imageUrl!, width: 50, height: 50, errorWidget: (_, __, ___) => const Icon(Icons.store))
                     : Container(width: 50, height: 50, color: Colors.grey[300]),
                 const SizedBox(width: 16),
                 ElevatedButton(

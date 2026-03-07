@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../catalog/product.dart';
 import '../catalog/brand.dart';
 import '../catalog/product_details_page.dart';
@@ -250,8 +251,8 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                                 height: 120,
                                                 width: double.infinity,
                                                 child: p.imageUrl != null && p.imageUrl!.isNotEmpty
-                                                    ? Image.network(
-                                                        p.imageUrl!,
+                                                    ? CachedNetworkImage(
+                                                        imageUrl: p.imageUrl!,
                                                         fit: BoxFit.cover,
                                                       )
                                                     : const Icon(Icons.image, size: 48, color: Colors.grey),
@@ -327,8 +328,8 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                     height: 80,
                                     width: double.infinity,
                                     child: b.imageUrl != null && b.imageUrl!.isNotEmpty
-                                        ? Image.network(
-                                            b.imageUrl!,
+                                        ? CachedNetworkImage(
+                                            imageUrl: b.imageUrl!,
                                             fit: BoxFit.contain,
                                           )
                                         : const Icon(Icons.image, size: 48, color: Colors.grey),

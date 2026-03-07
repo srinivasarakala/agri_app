@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../product_video.dart';
 
 class ProductVideosCarousel extends StatefulWidget {
@@ -25,7 +26,18 @@ class _ProductVideosCarouselState extends State<ProductVideosCarousel> {
   YoutubePlayerController? _ytController;
 
   void _showEmbeddedVideo(BuildContext context, String youtubeUrl) {
-    final videoId = YoutubePlayer.convertUrlToId(youtubeUrl);
+    // Try multiple methods to extract video ID
+    String? videoId = YoutubePlayer.convertUrlToId(youtubeUrl);
+    
+    // If convertUrlToId fails, try manual extraction for Shorts URLs
+    if (videoId == null) {
+      final shortsPattern = RegExp(r'(?:youtube\.com|youtu\.be)/shorts/([0-9A-Za-z_-]{11})');
+      final match = shortsPattern.firstMatch(youtubeUrl);
+      if (match != null) {
+        videoId = match.group(1);
+      }
+    }
+    
     if (videoId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Invalid YouTube URL')),
@@ -207,11 +219,11 @@ class _VideoCard extends StatelessWidget {
                       borderRadius: const BorderRadius.vertical(
                         bottom: Radius.circular(12),
                       ),
-                      child: Image.network(
-                        video.thumbnailUrl,
+                      child: CachedNetworkImage(
+                        imageUrl: video.thumbnailUrl,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorWidget: (_, __, ___) => Container(
                           color: Colors.grey.shade200,
                           child: const Center(
                             child: Icon(

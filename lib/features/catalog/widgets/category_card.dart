@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class CategoryCard extends StatelessWidget {
   final String categoryName;
@@ -74,10 +75,10 @@ class CategoryCard extends StatelessWidget {
 
   // Display single category image
   Widget _buildCategoryImage() {
-    return Image.network(
-      categoryImageUrl!,
+    return CachedNetworkImage(
+      imageUrl: categoryImageUrl!,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => const Icon(
+      errorWidget: (_, __, ___) => const Icon(
         Icons.category,
         size: 48,
         color: Colors.grey,
@@ -102,10 +103,10 @@ class CategoryCard extends StatelessWidget {
         return Container(
           color: Colors.grey.shade200,
           child: hasImage
-              ? Image.network(
-                  productImages[index],
+              ? CachedNetworkImage(
+                  imageUrl: productImages[index],
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(
+                  errorWidget: (_, __, ___) => const Icon(
                     Icons.category,
                     size: 24,
                     color: Colors.grey,

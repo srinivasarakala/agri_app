@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../main.dart';
 import '../../catalog/spare_part.dart';
 import '../../catalog/category.dart';
@@ -489,12 +490,12 @@ class _AdminSparePartsPageState extends State<AdminSparePartsPage> {
                                       )
                                     : (p.imageUrl != null &&
                                             p.imageUrl!.isNotEmpty
-                                        ? Image.network(
-                                            p.imageUrl!,
+                                        ? CachedNetworkImage(
+                                            imageUrl: p.imageUrl!,
                                             width: 50,
                                             height: 50,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) =>
+                                            errorWidget: (_, __, ___) =>
                                                 const Icon(Icons.build),
                                           )
                                         : const Icon(Icons.build)),
@@ -796,38 +797,12 @@ class _SparePartFormSheetState extends State<SparePartFormSheet> {
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: skuCtrl,
-              decoration: const InputDecoration(
-                labelText: 'SKU (auto-generated if empty)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
               controller: descriptionCtrl,
               maxLines: 3,
               decoration: const InputDecoration(
                 labelText: 'Description',
                 border: OutlineInputBorder(),
               ),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<int?>(
-              value: selectedBrandId,
-              decoration: const InputDecoration(
-                labelText: 'Brand',
-                border: OutlineInputBorder(),
-              ),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('None')),
-                ...widget.brands.map(
-                  (b) => DropdownMenuItem(
-                    value: b['id'] as int?,
-                    child: Text(b['name'] as String),
-                  ),
-                ),
-              ],
-              onChanged: (v) => setState(() => selectedBrandId = v),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<Category?>(
@@ -907,41 +882,71 @@ class _SparePartFormSheetState extends State<SparePartFormSheet> {
               ),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: imageUrlCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Image URL (optional)',
-                      border: OutlineInputBorder(),
-                    ),
+            // Image picker section
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Spare Part Image',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: _pickImage,
-                  icon: const Icon(Icons.image),
-                  label: const Text('Pick'),
-                ),
-              ],
-            ),
-            if (pickedImage != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  children: [
-                    const Icon(Icons.check_circle, color: Colors.green),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Image selected: ${pickedImage!.name}',
-                        style: const TextStyle(fontSize: 12),
-                      ),
+                  const SizedBox(height: 8),
+                  if (pickedImage != null) ...[
+                    Image.file(
+                      File(pickedImage!.path),
+                      height: 150,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        TextButton.icon(
+                          onPressed: _pickImage,
+                          icon: const Icon(Icons.change_circle),
+                          label: const Text('Change Image'),
+                        ),
+                        TextButton.icon(
+                          onPressed: () => setState(() => pickedImage = null),
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          label: const Text(
+                            'Remove',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else if (widget.sparePart?.imageUrl != null &&
+                      widget.sparePart!.imageUrl!.isNotEmpty) ...[
+                    CachedNetworkImage(
+                      imageUrl: widget.sparePart!.imageUrl!,
+                      height: 150,
+                      fit: BoxFit.contain,
+                      errorWidget: (_, __, ___) =>
+                          const Icon(Icons.build, size: 50),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: _pickImage,
+                      icon: const Icon(Icons.upload),
+                      label: const Text('Change Image'),
+                    ),
+                  ] else ...[
+                    OutlinedButton.icon(
+                      onPressed: _pickImage,
+                      icon: const Icon(Icons.upload),
+                      label: const Text('Pick Image from Gallery'),
                     ),
                   ],
-                ),
+                ],
               ),
+            ),
             const SizedBox(height: 12),
             SwitchListTile(
               title: const Text('Active'),

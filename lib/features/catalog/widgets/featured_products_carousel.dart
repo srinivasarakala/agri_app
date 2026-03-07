@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../product.dart';
 
 class FeaturedProductsCarousel extends StatelessWidget {
@@ -62,10 +63,10 @@ class FeaturedProductsCarousel extends StatelessWidget {
                       child: AspectRatio(
                         aspectRatio: 1,
                         child: (product.imageUrl != null && product.imageUrl!.isNotEmpty)
-                            ? Image.network(
-                                product.imageUrl!,
+                            ? CachedNetworkImage(
+                                imageUrl: product.imageUrl!,
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
+                                errorWidget: (_, __, ___) => Container(
                                   color: Colors.grey.shade100,
                                   child: const Icon(Icons.image, size: 40, color: Colors.grey),
                                 ),

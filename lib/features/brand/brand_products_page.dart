@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../catalog/product.dart';
 import '../catalog/product_details_page.dart';
 import '../../main.dart';
@@ -157,7 +158,7 @@ class _BrandProductsPageState extends State<BrandProductsPage> {
                                       children: [
                                         Expanded(
                                           child: product.imageUrl != null && product.imageUrl!.isNotEmpty
-                                              ? Image.network(product.imageUrl!, fit: BoxFit.cover)
+                                              ? CachedNetworkImage(imageUrl: product.imageUrl!, fit: BoxFit.cover)
                                               : const Icon(Icons.shopping_bag, size: 60),
                                         ),
                                         Padding(
