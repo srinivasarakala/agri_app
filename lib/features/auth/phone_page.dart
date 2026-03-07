@@ -255,7 +255,9 @@ class _PhonePageState extends State<PhonePage> {
     final phone = formatPhoneNumber(phoneCtrl.text.trim());
     final password = passwordCtrl.text.trim();
     try {
-      final session = await appAuth.verifyPassword(phone, password);
+      // Get device info to include in the request
+      final deviceInfo = await DeviceService().getDeviceInfo();
+      final session = await appAuth.verifyPassword(phone, password, deviceInfo: deviceInfo);
       if (!mounted) return;
       appTabIndex.value = 0;
       context.go('/app');

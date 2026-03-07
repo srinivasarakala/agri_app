@@ -86,14 +86,19 @@ class AuthService {
     );
   }
 
-  Future<Session> verifyPassword(String phone, String password) async {
+  Future<Session> verifyPassword(String phone, String password, {Map<String, dynamic>? deviceInfo}) async {
     final formattedPhone = formatPhoneNumber(phone);
+    final data = {
+      'phone': formattedPhone,
+      'password': password,
+    };
+    if (deviceInfo != null) {
+      final deviceInfoStr = deviceInfo.map((k, v) => MapEntry(k, v?.toString() ?? ''));
+      data.addAll(deviceInfoStr);
+    }
     final res = await client.dio.post(
       '/auth/verify-password',
-      data: {
-        'phone': formattedPhone,
-        'password': password,
-      },
+      data: data,
       options: Options(contentType: 'application/json'),
     );
     final access = res.data['access'] as String;
