@@ -76,7 +76,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         );
         final dir = await getTemporaryDirectory();
         final ext = p.imageUrl!.toLowerCase().endsWith('.png') ? 'png' : 'jpg';
-        final file = File('\${dir.path}/share_product_\${p.id}.$ext');
+        final file = File('${dir.path}/share_product_${p.id}.$ext');
         await file.writeAsBytes(response.data!);
         await Share.shareXFiles([XFile(file.path)], text: msg.toString());
         return;
