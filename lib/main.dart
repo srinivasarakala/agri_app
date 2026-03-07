@@ -16,6 +16,7 @@ import 'core/cart/cart_service.dart';
 import 'features/profile/profile_service.dart';
 import 'features/finance/ledger_service.dart';
 import 'features/stock/stock_history_service.dart';
+import 'features/admin/dealer_whitelist_service.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -32,6 +33,7 @@ late final CartService cartApi;
 late final ProfileService profileApi;
 late final LedgerService ledgerApi;
 late final StockHistoryService stockHistoryApi;
+late final DealerWhitelistService dealerWhitelistApi;
 late final CatalogSearchBus catalogSearchBus;
 
 FirebaseAnalytics? analytics;
@@ -83,6 +85,7 @@ void main() async {
   profileApi = ProfileService(client);
   ledgerApi = LedgerService(client);
   stockHistoryApi = StockHistoryService(client);
+  dealerWhitelistApi = DealerWhitelistService(client);
   ordersApi = OrdersService(client);
 
   runApp(const AgriApp());
@@ -105,27 +108,50 @@ void showUpdateRequiredPage() {
 /// Clears all local state and returns the user to the login screen.
 void showDeviceBlockedPage() {
   currentSession = null;
-  globalRouter?.go('/login');
+  _goLogin();
 }
 
 /// Called when the JWT access token has expired and the refresh token is also
 /// expired or invalid. Clears all local state and returns the user to login.
 void showSessionExpiredPage() {
   currentSession = null;
-  globalRouter?.go('/login');
+  _goLogin();
 }
 
-class AgriApp extends StatelessWidget {
+/// Navigate to /login using GoRouter; falls back to the raw Navigator if the
+/// router is not yet available (e.g. called very early during startup).
+void _goLogin() {
+  if (globalRouter != null) {
+    globalRouter!.go('/login');
+  } else {
+    navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (_) => false);
+  }
+}
+
+class AgriApp extends StatefulWidget {
   const AgriApp({Key? key}) : super(key: key);
 
   @override
+  State<AgriApp> createState() => _AgriAppState();
+}
+
+class _AgriAppState extends State<AgriApp> {
+  // Router is created once and reused — recreating it on every build would
+  // reset the entire navigation stack and produce stale globalRouter refs.
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+    _router = buildRouter();
+    globalRouter = _router;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final router = buildRouter();
-    globalRouter = router;
     return MaterialApp.router(
-      routerConfig: router,
+      routerConfig: _router,
       theme: AppTheme.themeData,
-      // navigatorKey is attached via GoRouter(navigatorKey: navigatorKey) in app_router.dart
     );
   }
 }

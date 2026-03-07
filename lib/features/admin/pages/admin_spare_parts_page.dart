@@ -2,27 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../main.dart';
-import '../../catalog/product.dart';
+import '../../catalog/spare_part.dart';
 import '../../catalog/category.dart';
 
-class AdminProductsPage extends StatefulWidget {
-  const AdminProductsPage({super.key});
+class AdminSparePartsPage extends StatefulWidget {
+  const AdminSparePartsPage({super.key});
 
   @override
-  State<AdminProductsPage> createState() => _AdminProductsPageState();
+  State<AdminSparePartsPage> createState() => _AdminSparePartsPageState();
 }
 
-class _AdminProductsPageState extends State<AdminProductsPage> {
+class _AdminSparePartsPageState extends State<AdminSparePartsPage> {
   bool loading = true;
   String? error;
-  List<Product> items = [];
-  List<Product> filteredItems = [];
+  List<SparePart> items = [];
+  List<SparePart> filteredItems = [];
   List<Category> categories = [];
   List<Map<String, dynamic>> brands = [];
   
   // Selection mode
   bool isSelectionMode = false;
-  Set<int> selectedProductIds = {};
+  Set<int> selectedSparePartIds = {};
 
   final searchCtrl = TextEditingController();
   String? selectedBrand;
@@ -47,14 +47,36 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
       loading = true;
       error = null;
       isSelectionMode = false;
-      selectedProductIds.clear();
+      selectedSparePartIds.clear();
     });
     try {
+      // Fetch all products and filter only spare parts
       final allProducts = await catalogApi.listProducts();
-      // Filter out spare parts - only show regular products
-      items = allProducts.where((p) => !p.isSparePart).toList();
+      // Filter only products where is_spare_part is true
+      items = allProducts
+          .where((p) => p.isSparePart)
+          .map((p) => SparePart(
+                id: p.id,
+                sku: p.sku,
+                name: p.name,
+                description: p.description,
+                brand: p.brand,
+                unit: p.unit,
+                mrp: p.mrp,
+                sellingPrice: p.sellingPrice,
+                minQty: p.minQty,
+                globalStock: p.globalStock,
+                isActive: p.isActive,
+                imageUrl: p.imageUrl,
+                createdAt: p.createdAt,
+                categoryId: p.categoryId,
+                categoryName: p.categoryName,
+                tags: p.tags,
+                isSparePart: true,
+              ))
+          .toList();
       categories = await catalogApi.listCategories();
-      brands = await catalogApi.listBrands(); // Implement listBrands in your API client
+      brands = await catalogApi.listBrands();
       filteredItems = items;
     } catch (e) {
       error = "Failed to load data: $e";
@@ -124,40 +146,40 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
     setState(() {
       isSelectionMode = !isSelectionMode;
       if (!isSelectionMode) {
-        selectedProductIds.clear();
+        selectedSparePartIds.clear();
       }
     });
   }
 
-  void _toggleProductSelection(int productId) {
+  void _toggleSparePartSelection(int sparePartId) {
     setState(() {
-      if (selectedProductIds.contains(productId)) {
-        selectedProductIds.remove(productId);
+      if (selectedSparePartIds.contains(sparePartId)) {
+        selectedSparePartIds.remove(sparePartId);
       } else {
-        selectedProductIds.add(productId);
+        selectedSparePartIds.add(sparePartId);
       }
     });
   }
 
   void _selectAll() {
     setState(() {
-      if (selectedProductIds.length == filteredItems.length) {
-        selectedProductIds.clear();
+      if (selectedSparePartIds.length == filteredItems.length) {
+        selectedSparePartIds.clear();
       } else {
-        selectedProductIds = filteredItems.map((p) => p.id).toSet();
+        selectedSparePartIds = filteredItems.map((p) => p.id).toSet();
       }
     });
   }
 
-  Future<void> _deleteSelectedProducts() async {
-    if (selectedProductIds.isEmpty) return;
+  Future<void> _deleteSelectedSpareParts() async {
+    if (selectedSparePartIds.isEmpty) return;
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Delete Products?'),
+        title: const Text('Delete Spare Parts?'),
         content: Text(
-          'Permanently delete ${selectedProductIds.length} product(s)? This cannot be undone.',
+          'Permanently delete ${selectedSparePartIds.length} spare part(s)? This cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -177,20 +199,20 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
     setState(() => loading = true);
 
     try {
-      // Delete each selected product
-      for (final productId in selectedProductIds) {
-        await catalogApi.adminDeleteProduct(productId);
+      // Delete each selected spare part
+      for (final sparePartId in selectedSparePartIds) {
+        await catalogApi.adminDeleteProduct(sparePartId);
       }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${selectedProductIds.length} product(s) deleted'),
+          content: Text('${selectedSparePartIds.length} spare part(s) deleted'),
         ),
       );
 
       setState(() {
-        selectedProductIds.clear();
+        selectedSparePartIds.clear();
         isSelectionMode = false;
       });
 
@@ -204,15 +226,15 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
     }
   }
 
-  Future<void> _openProductForm({Product? product}) async {
+  Future<void> _openSparePartForm({SparePart? sparePart}) async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => ProductFormSheet(
-        product: product,
+      builder: (_) => SparePartFormSheet(
+        sparePart: sparePart,
         categories: categories,
         brands: brands,
         onSave: load,
@@ -220,11 +242,11 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
     );
   }
 
-  Future<void> _deleteProduct(Product p) async {
+  Future<void> _deleteSparePart(SparePart p) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Delete Product?'),
+        title: const Text('Delete Spare Part?'),
         content: Text('Permanently delete "${p.name}"? This cannot be undone.'),
         actions: [
           TextButton(
@@ -246,7 +268,7 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Product deleted')));
+      ).showSnackBar(const SnackBar(content: Text('Spare part deleted')));
       load();
     } catch (e) {
       if (!mounted) return;
@@ -263,8 +285,8 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
       appBar: AppBar(
         title: Text(
           isSelectionMode
-              ? '${selectedProductIds.length} selected'
-              : 'Manage Products${filteredItems.isNotEmpty ? " (${filteredItems.length})" : ""}',
+              ? '${selectedSparePartIds.length} selected'
+              : 'Manage Spare Parts${filteredItems.isNotEmpty ? " (${filteredItems.length})" : ""}',
         ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -279,7 +301,7 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
           if (isSelectionMode) ...[
             IconButton(
               icon: Icon(
-                selectedProductIds.length == filteredItems.length
+                selectedSparePartIds.length == filteredItems.length
                     ? Icons.check_box
                     : Icons.check_box_outline_blank,
               ),
@@ -446,8 +468,8 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                         ? Center(
                             child: Text(
                               searchCtrl.text.isEmpty
-                                  ? 'No products'
-                                  : 'No products match search',
+                                  ? 'No spare parts'
+                                  : 'No spare parts match search',
                               style: const TextStyle(color: Colors.grey),
                             ),
                           )
@@ -456,14 +478,14 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                             itemCount: filteredItems.length,
                             itemBuilder: (context, i) {
                               final p = filteredItems[i];
-                              final isSelected = selectedProductIds.contains(p.id);
+                              final isSelected = selectedSparePartIds.contains(p.id);
 
                               return ListTile(
                                 leading: isSelectionMode
                                     ? Checkbox(
                                         value: isSelected,
                                         onChanged: (_) =>
-                                            _toggleProductSelection(p.id),
+                                            _toggleSparePartSelection(p.id),
                                       )
                                     : (p.imageUrl != null &&
                                             p.imageUrl!.isNotEmpty
@@ -473,9 +495,9 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                                             height: 50,
                                             fit: BoxFit.cover,
                                             errorBuilder: (_, __, ___) =>
-                                                const Icon(Icons.image),
+                                                const Icon(Icons.build),
                                           )
-                                        : const Icon(Icons.image)),
+                                        : const Icon(Icons.build)),
                                 title: Text(p.name),
                                 subtitle: Text(
                                   '${p.sku} • ₹${p.sellingPrice.toStringAsFixed(2)} • Stock: ${p.globalStock.toStringAsFixed(2)}',
@@ -490,19 +512,19 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                                           IconButton(
                                             icon: const Icon(Icons.edit),
                                             onPressed: () =>
-                                                _openProductForm(product: p),
+                                                _openSparePartForm(sparePart: p),
                                           ),
                                           IconButton(
                                             icon: const Icon(
                                               Icons.delete,
                                               color: Colors.red,
                                             ),
-                                            onPressed: () => _deleteProduct(p),
+                                            onPressed: () => _deleteSparePart(p),
                                           ),
                                         ],
                                       ),
                                 onTap: isSelectionMode
-                                    ? () => _toggleProductSelection(p.id)
+                                    ? () => _toggleSparePartSelection(p.id)
                                     : null,
                               );
                             },
@@ -514,12 +536,12 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
       floatingActionButton: isSelectionMode
           ? null
           : FloatingActionButton.extended(
-              onPressed: () => _openProductForm(),
+              onPressed: () => _openSparePartForm(),
               icon: const Icon(Icons.add),
-              label: const Text('Add Product'),
+              label: const Text('Add Spare Part'),
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: isSelectionMode && selectedProductIds.isNotEmpty
+      bottomNavigationBar: isSelectionMode && selectedSparePartIds.isNotEmpty
           ? Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -537,7 +559,7 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                   children: [
                     Expanded(
                       child: Text(
-                        '${selectedProductIds.length} item(s) selected',
+                        '${selectedSparePartIds.length} item(s) selected',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -545,7 +567,7 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
                       ),
                     ),
                     ElevatedButton.icon(
-                      onPressed: _deleteSelectedProducts,
+                      onPressed: _deleteSelectedSpareParts,
                       icon: const Icon(Icons.delete),
                       label: const Text('Delete'),
                       style: ElevatedButton.styleFrom(
@@ -562,25 +584,26 @@ class _AdminProductsPageState extends State<AdminProductsPage> {
   }
 }
 
-class ProductFormSheet extends StatefulWidget {
-  final Product? product;
+// Spare Part Form Sheet
+class SparePartFormSheet extends StatefulWidget {
+  final SparePart? sparePart;
   final List<Category> categories;
   final List<Map<String, dynamic>> brands;
   final VoidCallback onSave;
 
-  const ProductFormSheet({
+  const SparePartFormSheet({
     super.key,
-    this.product,
+    this.sparePart,
     required this.categories,
     required this.brands,
     required this.onSave,
   });
 
   @override
-  State<ProductFormSheet> createState() => _ProductFormSheetState();
+  State<SparePartFormSheet> createState() => _SparePartFormSheetState();
 }
 
-class _ProductFormSheetState extends State<ProductFormSheet> {
+class _SparePartFormSheetState extends State<SparePartFormSheet> {
   late TextEditingController skuCtrl;
   late TextEditingController nameCtrl;
   late TextEditingController descriptionCtrl;
@@ -601,39 +624,39 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
   @override
   void initState() {
     super.initState();
-    skuCtrl = TextEditingController(text: widget.product?.sku ?? '');
-    nameCtrl = TextEditingController(text: widget.product?.name ?? '');
+    skuCtrl = TextEditingController(text: widget.sparePart?.sku ?? '');
+    nameCtrl = TextEditingController(text: widget.sparePart?.name ?? '');
     descriptionCtrl = TextEditingController(
-      text: widget.product?.description ?? '',
+      text: widget.sparePart?.description ?? '',
     );
-    if (widget.product?.brand != null) {
+    if (widget.sparePart?.brand != null) {
       final matchingBrands = widget.brands
           .cast<Map<String, dynamic>>()
-          .where((b) => b['name'] == widget.product!.brand)
+          .where((b) => b['name'] == widget.sparePart!.brand)
           .toList();
       selectedBrandId = matchingBrands.isNotEmpty
           ? matchingBrands.first['id'] as int?
           : null;
     }
-    unitCtrl = TextEditingController(text: widget.product?.unit ?? 'pcs');
+    unitCtrl = TextEditingController(text: widget.sparePart?.unit ?? 'pcs');
     mrpCtrl = TextEditingController(
-      text: widget.product?.mrp.toStringAsFixed(2) ?? '',
+      text: widget.sparePart?.mrp.toStringAsFixed(2) ?? '',
     );
     priceCtrl = TextEditingController(
-      text: widget.product?.sellingPrice.toStringAsFixed(2) ?? '',
+      text: widget.sparePart?.sellingPrice.toStringAsFixed(2) ?? '',
     );
     stockCtrl = TextEditingController(
-      text: widget.product?.globalStock.toStringAsFixed(2) ?? '',
+      text: widget.sparePart?.globalStock.toStringAsFixed(2) ?? '',
     );
     minQtyCtrl = TextEditingController(
-      text: widget.product?.minQty.toStringAsFixed(0) ?? '1',
+      text: widget.sparePart?.minQty.toStringAsFixed(0) ?? '1',
     );
-    imageUrlCtrl = TextEditingController(text: widget.product?.imageUrl ?? '');
-    isActive = widget.product?.isActive ?? true;
+    imageUrlCtrl = TextEditingController(text: widget.sparePart?.imageUrl ?? '');
+    isActive = widget.sparePart?.isActive ?? true;
 
     if (widget.categories.isNotEmpty) {
       final matchingCats = widget.categories
-          .where((c) => c.id == widget.product?.categoryId)
+          .where((c) => c.id == widget.sparePart?.categoryId)
           .toList();
       selectedCategory = matchingCats.isNotEmpty
           ? matchingCats.first
@@ -699,22 +722,26 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
         'is_active': isActive,
         'image_url': imageUrlCtrl.text.isEmpty ? null : imageUrlCtrl.text,
         'category': selectedCategory?.id,
+        'is_spare_part': true, // ✅ Flag to mark as spare part
       };
 
-      Product createdOrUpdatedProduct;
-      if (widget.product == null) {
-        createdOrUpdatedProduct = await catalogApi.adminCreateProduct(payload);
+      dynamic createdOrUpdatedSparePart;
+      if (widget.sparePart == null) {
+        createdOrUpdatedSparePart = await catalogApi.adminCreateProduct(payload);
       } else {
-        createdOrUpdatedProduct = await catalogApi.adminUpdateProduct(
-          widget.product!.id,
+        createdOrUpdatedSparePart = await catalogApi.adminUpdateProduct(
+          widget.sparePart!.id,
           payload,
         );
       }
 
       // Upload image if one was picked
       if (pickedImage != null) {
+        final productId = createdOrUpdatedSparePart is SparePart
+            ? createdOrUpdatedSparePart.id
+            : createdOrUpdatedSparePart.id;
         await catalogApi.adminUploadProductImage(
-          createdOrUpdatedProduct.id,
+          productId,
           pickedImage!.path,
         );
       }
@@ -746,58 +773,78 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              widget.product == null ? 'Add Product' : 'Edit Product',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  widget.sparePart == null ? 'Add Spare Part' : 'Edit Spare Part',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             TextField(
               controller: nameCtrl,
               decoration: const InputDecoration(
-                labelText: 'Product Name *',
+                labelText: 'Name *',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: skuCtrl,
+              decoration: const InputDecoration(
+                labelText: 'SKU (auto-generated if empty)',
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: descriptionCtrl,
-              maxLines: 2,
+              maxLines: 3,
               decoration: const InputDecoration(
                 labelText: 'Description',
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: skuCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'SKU',
-                      hintText: 'Auto if empty',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<int>(
-                    value: selectedBrandId,
-                    decoration: const InputDecoration(
-                      labelText: 'Brand',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: widget.brands
-                        .map((b) => DropdownMenuItem(
-                              value: int.parse(b['id'].toString()),
-                              child: Text(b['name']),
-                            ))
-                        .toList(),
-                    onChanged: (v) => setState(() => selectedBrandId = v),
+            DropdownButtonFormField<int?>(
+              value: selectedBrandId,
+              decoration: const InputDecoration(
+                labelText: 'Brand',
+                border: OutlineInputBorder(),
+              ),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('None')),
+                ...widget.brands.map(
+                  (b) => DropdownMenuItem(
+                    value: b['id'] as int?,
+                    child: Text(b['name'] as String),
                   ),
                 ),
               ],
+              onChanged: (v) => setState(() => selectedBrandId = v),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<Category?>(
+              value: selectedCategory,
+              decoration: const InputDecoration(
+                labelText: 'Category',
+                border: OutlineInputBorder(),
+              ),
+              items: widget.categories
+                  .map(
+                    (c) => DropdownMenuItem(
+                      value: c,
+                      child: Text(c.name),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (v) => setState(() => selectedCategory = v),
             ),
             const SizedBox(height: 12),
             Row(
@@ -811,22 +858,14 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: DropdownButtonFormField<Category>(
-                    value: selectedCategory,
+                  child: TextField(
+                    controller: minQtyCtrl,
+                    keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                      labelText: 'Category',
+                      labelText: 'Min Qty',
                       border: OutlineInputBorder(),
-                    ),
-                    items: widget.categories
-                        .map(
-                          (c) =>
-                              DropdownMenuItem(value: c, child: Text(c.name)),
-                        )
-                        .toList(),
-                    onChanged: (v) => setState(
-                      () => selectedCategory = v ?? selectedCategory,
                     ),
                   ),
                 ),
@@ -845,7 +884,7 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     controller: priceCtrl,
@@ -859,123 +898,71 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
               ],
             ),
             const SizedBox(height: 12),
+            TextField(
+              controller: stockCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Stock',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: TextField(
-                    controller: stockCtrl,
-                    keyboardType: TextInputType.number,
+                    controller: imageUrlCtrl,
                     decoration: const InputDecoration(
-                      labelText: 'Stock Quantity',
+                      labelText: 'Image URL (optional)',
                       border: OutlineInputBorder(),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: minQtyCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Min Quantity',
-                      hintText: '1',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: _pickImage,
+                  icon: const Icon(Icons.image),
+                  label: const Text('Pick'),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            // Image picker section
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'Product Image',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 8),
-                  if (pickedImage != null) ...[
-                    Image.file(
-                      File(pickedImage!.path),
-                      height: 150,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        TextButton.icon(
-                          onPressed: _pickImage,
-                          icon: const Icon(Icons.change_circle),
-                          label: const Text('Change Image'),
-                        ),
-                        TextButton.icon(
-                          onPressed: () => setState(() => pickedImage = null),
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          label: const Text(
-                            'Remove',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ] else if (widget.product?.imageUrl != null &&
-                      widget.product!.imageUrl!.isNotEmpty) ...[
-                    Image.network(
-                      widget.product!.imageUrl!,
-                      height: 150,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) =>
-                          const Icon(Icons.image, size: 50),
-                    ),
-                    const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      onPressed: _pickImage,
-                      icon: const Icon(Icons.upload),
-                      label: const Text('Change Image'),
-                    ),
-                  ] else ...[
-                    OutlinedButton.icon(
-                      onPressed: _pickImage,
-                      icon: const Icon(Icons.upload),
-                      label: const Text('Pick Image from Gallery'),
+            if (pickedImage != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.green),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Image selected: ${pickedImage!.name}',
+                        style: const TextStyle(fontSize: 12),
+                      ),
                     ),
                   ],
-                ],
+                ),
               ),
-            ),
             const SizedBox(height: 12),
-            CheckboxListTile(
+            SwitchListTile(
               title: const Text('Active'),
               value: isActive,
-              onChanged: (v) => setState(() => isActive = v ?? true),
-              contentPadding: EdgeInsets.zero,
+              onChanged: (v) => setState(() => isActive = v),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
+            const SizedBox(height: 16),
+            ElevatedButton(
               onPressed: saving ? null : _save,
-              icon: saving
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: saving
                   ? const SizedBox(
-                      width: 20,
                       height: 20,
+                      width: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.save),
-              label: Text(
-                widget.product == null ? 'Create Product' : 'Update Product',
-              ),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
+                  : const Text('Save'),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
           ],
         ),
       ),

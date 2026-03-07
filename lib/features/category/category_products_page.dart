@@ -41,7 +41,8 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
     });
     try {
       final all = await catalogApi.listProducts();
-      products = all.where((p) => p.categoryId == widget.categoryId).toList();
+      // Filter out spare parts and filter by category
+      products = all.where((p) => !p.isSparePart && p.categoryId == widget.categoryId).toList();
       _applyFilters();
     } catch (e) {
       error = "Failed to load products";

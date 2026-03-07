@@ -43,7 +43,8 @@ class _BrandProductsPageState extends State<BrandProductsPage> {
     });
     try {
       final all = await catalogApi.listProducts();
-      products = all.where((p) => p.brand == widget.brandName).toList();
+      // Filter out spare parts and filter by brand
+      products = all.where((p) => !p.isSparePart && p.brand == widget.brandName).toList();
       allBrands = all.map((p) => p.brand ?? '').where((b) => b.isNotEmpty).toSet().toList();
       _applyFilters();
     } catch (e) {

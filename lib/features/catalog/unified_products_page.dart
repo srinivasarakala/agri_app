@@ -11,6 +11,7 @@ class UnifiedProductsPage extends StatefulWidget {
   final String? categoryName;
   final bool showSearchBar;
   final bool showFilterRow;
+  final bool showOnlySpareParts;
 
   const UnifiedProductsPage({
     this.brandId,
@@ -19,6 +20,7 @@ class UnifiedProductsPage extends StatefulWidget {
     this.categoryName,
     this.showSearchBar = false,
     this.showFilterRow = false,
+    this.showOnlySpareParts = false,
     Key? key,
   }) : super(key: key);
 
@@ -68,8 +70,9 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
     });
     try {
       final all = await catalogApi.listProducts();
+      // Filter products based on showOnlySpareParts flag
       products = all.where((p) {
-        bool matches = true;
+        bool matches = widget.showOnlySpareParts ? p.isSparePart : !p.isSparePart;
         if (widget.brandName != null) {
           matches = matches && (p.brand == widget.brandName);
         }

@@ -1,26 +1,38 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../catalog/brand.dart';
+import '../category.dart';
+import 'category_card.dart';
 
-class BrandsCarousel extends StatefulWidget {
-  final List<Brand> brands;
-  final void Function(Brand)? onBrandTap;
+class SparePartsCarousel extends StatefulWidget {
+  final List<Category> categories;
+  final void Function(Category)? onCategoryTap;
   final bool isLoading;
   final String? error;
 
-  const BrandsCarousel({
+  const SparePartsCarousel({
     super.key,
-    required this.brands,
-    this.onBrandTap,
+    required this.categories,
+    this.onCategoryTap,
     this.isLoading = false,
     this.error,
   });
 
   @override
-  State<BrandsCarousel> createState() => _BrandsCarouselState();
+  State<SparePartsCarousel> createState() => _SparePartsCarouselState();
 }
 
-class _BrandsCarouselState extends State<BrandsCarousel> {
+class _SparePartsCarouselState extends State<SparePartsCarousel> {
+  // Warm mechanical color palette for spare parts
+  static const List<Color> _sparePartsColors = [
+    Color(0xFFE8EAF6), // Indigo 50
+    Color(0xFFECEFF1), // Blue Grey 50
+    Color(0xFFFFF8E1), // Amber 50
+    Color(0xFFE1F5FE), // Light Blue 50
+    Color(0xFFF3E5F5), // Purple 50
+    Color(0xFFE0F2F1), // Teal 50
+    Color(0xFFFBE9E7), // Deep Orange 50
+  ];
+
   final ScrollController _scrollController = ScrollController();
   Timer? _autoScrollTimer;
   bool _userInteracting = false;
@@ -28,8 +40,8 @@ class _BrandsCarouselState extends State<BrandsCarousel> {
   @override
   void initState() {
     super.initState();
-    // Start auto-scroll after initial frame and if brands exist
-    if (widget.brands.isNotEmpty) {
+    // Start auto-scroll after initial frame and if categories exist
+    if (widget.categories.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _startAutoScroll();
       });
@@ -37,10 +49,10 @@ class _BrandsCarouselState extends State<BrandsCarousel> {
   }
 
   @override
-  void didUpdateWidget(BrandsCarousel oldWidget) {
+  void didUpdateWidget(SparePartsCarousel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Start auto-scroll when brands are loaded
-    if (oldWidget.brands.isEmpty && widget.brands.isNotEmpty) {
+    // Start auto-scroll when categories are loaded
+    if (oldWidget.categories.isEmpty && widget.categories.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _startAutoScroll();
       });
@@ -55,7 +67,7 @@ class _BrandsCarouselState extends State<BrandsCarousel> {
   }
 
   void _startAutoScroll() {
-    if (widget.brands.length <= 1 || !_scrollController.hasClients) {
+    if (widget.categories.length <= 1 || !_scrollController.hasClients) {
       return;
     }
 
@@ -74,7 +86,7 @@ class _BrandsCarouselState extends State<BrandsCarousel> {
       } else {
         // Scroll forward smoothly
         _scrollController.animateTo(
-          currentScroll + 100, // Scroll by ~1 brand width
+          currentScroll + 150, // Scroll by ~1 card width
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
         );
@@ -98,24 +110,33 @@ class _BrandsCarouselState extends State<BrandsCarousel> {
   Widget build(BuildContext context) {
     if (widget.isLoading) {
       return const SizedBox(
-        height: 120,
+        height: 220,
         child: Center(child: CircularProgressIndicator()),
       );
     }
+
     if (widget.error != null) {
-      return SizedBox(
-        height: 120,
-        child: Center(child: Text(widget.error!, style: const TextStyle(color: Colors.red))),
+      return Padding(
+        padding: const EdgeInsets.all(14),
+        child: Text(
+          widget.error!,
+          style: const TextStyle(color: Colors.red),
+        ),
       );
     }
-    if (widget.brands.isEmpty) {
-      return const SizedBox(
-        height: 120,
-        child: Center(child: Text('No brands found.')),
+
+    if (widget.categories.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(14),
+        child: Text(
+          "No spare parts categories available",
+          style: TextStyle(color: Colors.grey),
+        ),
       );
     }
+
     return SizedBox(
-      height: 120,
+      height: 220,
       child: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
           if (notification is ScrollStartNotification) {
@@ -125,35 +146,26 @@ class _BrandsCarouselState extends State<BrandsCarousel> {
           }
           return false;
         },
-        child: ListView.separated(
+        child: ListView.builder(
           controller: _scrollController,
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 14),
-          itemCount: widget.brands.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemCount: widget.categories.length,
           itemBuilder: (context, index) {
-            final brand = widget.brands[index];
-            return GestureDetector(
-              onTap: () => widget.onBrandTap?.call(brand),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 36,
-                    backgroundImage: brand.imageUrl != null ? NetworkImage(brand.imageUrl!) : null,
-                    child: brand.imageUrl == null ? Text(brand.name[0]) : null,
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: 72,
-                    child: Text(
-                      brand.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
+            final category = widget.categories[index];
+            final color = _sparePartsColors[index % _sparePartsColors.length];
+
+            return Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: CategoryCard(
+                categoryName: category.name,
+                productImages: category.productImages,
+                productCount: category.productCount,
+                backgroundColor: color,
+                categoryImageUrl: category.imageUrl,
+                onTap: widget.onCategoryTap != null
+                    ? () => widget.onCategoryTap!(category)
+                    : null,
               ),
             );
           },

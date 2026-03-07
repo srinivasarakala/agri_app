@@ -87,6 +87,17 @@ class CatalogService {
     return Category.fromJson(res.data as Map<String, dynamic>);
   }
 
+  Future<Category> adminUploadCategoryImage(int categoryId, String filePath) async {
+    final form = FormData.fromMap({
+      'image': await MultipartFile.fromFile(filePath),
+    });
+    final res = await client.dio.post(
+      '/api/admin/categories/$categoryId/image',
+      data: form,
+    );
+    return Category.fromJson(res.data as Map<String, dynamic>);
+  }
+
   Future<void> adminDeleteCategory(int categoryId) async {
     await client.dio.delete('/api/admin/categories/$categoryId');
   }

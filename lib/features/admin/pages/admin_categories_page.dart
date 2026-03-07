@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../../main.dart';
 import '../../catalog/category.dart';
 
@@ -184,7 +186,8 @@ class CategoryFormSheet extends StatefulWidget {
 class _CategoryFormSheetState extends State<CategoryFormSheet> {
   late TextEditingController nameCtrl;
   late TextEditingController descriptionCtrl;
-  late TextEditingController imageUrlCtrl;
+  XFile? pickedImage;
+  final ImagePicker _picker = ImagePicker();
   bool isActive = true;
   bool saving = false;
 
@@ -194,8 +197,6 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
     nameCtrl = TextEditingController(text: widget.category?.name ?? '');
     descriptionCtrl =
         TextEditingController(text: widget.category?.description ?? '');
-    imageUrlCtrl =
-        TextEditingController(text: widget.category?.imageUrl ?? '');
     isActive = widget.category?.is_active ?? true;
   }
 
@@ -203,8 +204,21 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
   void dispose() {
     nameCtrl.dispose();
     descriptionCtrl.dispose();
-    imageUrlCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        setState(() => pickedImage = image);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking image: $e')),
+      );
+    }
   }
 
   Future<void> _save() async {
@@ -220,14 +234,22 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
       final payload = {
         'name': nameCtrl.text,
         'description': descriptionCtrl.text,
-        'image_url': imageUrlCtrl.text.isEmpty ? null : imageUrlCtrl.text,
         'is_active': isActive,
       };
 
+      var createdOrUpdatedCategory;
       if (widget.category == null) {
-        await catalogApi.adminCreateCategory(payload);
+        createdOrUpdatedCategory = await catalogApi.adminCreateCategory(payload);
       } else {
-        await catalogApi.adminUpdateCategory(widget.category!.id, payload);
+        createdOrUpdatedCategory = await catalogApi.adminUpdateCategory(widget.category!.id, payload);
+      }
+
+      // Upload image if one was picked
+      if (pickedImage != null) {
+        await catalogApi.adminUploadCategoryImage(
+          createdOrUpdatedCategory.id,
+          pickedImage!.path,
+        );
       }
 
       if (!mounted) return;
@@ -279,12 +301,24 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
               ),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: imageUrlCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Image URL',
-                border: OutlineInputBorder(),
-              ),
+            Row(
+              children: [
+                pickedImage != null
+                    ? Image.file(File(pickedImage!.path), width: 50, height: 50)
+                    : widget.category?.imageUrl != null && widget.category!.imageUrl!.isNotEmpty
+                        ? Image.network(
+                            widget.category!.imageUrl!,
+                            width: 50,
+                            height: 50,
+                            errorBuilder: (_, __, ___) => const Icon(Icons.category),
+                          )
+                        : Container(width: 50, height: 50, color: Colors.grey[300]),
+                const SizedBox(width: 16),
+                ElevatedButton(
+                  onPressed: saving ? null : _pickImage,
+                  child: const Text('Pick Image'),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             CheckboxListTile(

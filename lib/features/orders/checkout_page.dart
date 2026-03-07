@@ -72,7 +72,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
   Future<void> _loadProducts() async {
     try {
-      allProducts = await catalogApi.listProducts();
+      final all = await catalogApi.listProducts();
+      // Filter out spare parts from checkout
+      allProducts = all.where((p) => !p.isSparePart).toList();
       setState(() {});
     } catch (e) {
       // Silent fail, products are for display only

@@ -76,7 +76,7 @@ class _TopProductsCarouselState extends State<TopProductsCarousel> {
               const Text(
                 "Our Top Products",
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
                 ),
@@ -159,13 +159,13 @@ class _ImageCard extends StatelessWidget {
   Future<void> _share(BuildContext context) async {
     const text = '🌾 Check out our top products at Pavan HiTech Agro!';
     try {
-      final response = await Dio().get<List<int>>(
+      final response = await Dio().get(
         imageUrl,
         options: Options(responseType: ResponseType.bytes),
       );
       final dir = await getTemporaryDirectory();
-      final file = File('\${dir.path}/top_product_\${imageUrl.hashCode}.jpg');
-      await file.writeAsBytes(response.data!);
+      final file = File('${dir.path}/top_product_${imageUrl.hashCode}.jpg');
+      await file.writeAsBytes(response.data as List<int>);
       await Share.shareXFiles([XFile(file.path)], text: text);
     } catch (_) {
       await Share.share(text);

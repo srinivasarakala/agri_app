@@ -5,7 +5,7 @@ double _toDouble(dynamic v) {
   return 0;
 }
 
-class Product {
+class SparePart {
   final int id;
   final String sku;
   final String name;
@@ -24,7 +24,7 @@ class Product {
   final String? tags; // Comma-separated tags
   final bool isSparePart; // Flag to identify spare parts
 
-  Product({
+  SparePart({
     required this.id,
     required this.sku,
     required this.name,
@@ -41,10 +41,10 @@ class Product {
     this.categoryId,
     this.categoryName,
     this.tags,
-    this.isSparePart = false,
+    this.isSparePart = true,
   });
 
-  factory Product.fromJson(Map<String, dynamic> j) => Product(
+  factory SparePart.fromJson(Map<String, dynamic> j) => SparePart(
         id: j['id'] as int,
         sku: (j['sku'] ?? '').toString(),
         name: (j['name'] ?? '').toString(),
@@ -61,6 +61,26 @@ class Product {
         categoryId: j['category'] as int?,
         categoryName: j['category_name']?.toString(),
         tags: j['tags']?.toString(),
-        isSparePart: j['is_spare_part'] ?? false,
+        isSparePart: j['is_spare_part'] ?? true,
       );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'sku': sku,
+        'name': name,
+        'description': description,
+        'brand_name': brand,
+        'unit': unit,
+        'mrp': mrp,
+        'selling_price': sellingPrice,
+        'min_qty': minQty,
+        'global_stock': globalStock,
+        'is_active': isActive,
+        'image_url': imageUrl,
+        'created_at': createdAt.toIso8601String(),
+        'category': categoryId,
+        'category_name': categoryName,
+        'tags': tags,
+        'is_spare_part': isSparePart,
+      };
 }

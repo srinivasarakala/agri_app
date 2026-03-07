@@ -155,6 +155,7 @@ class _CategoriesCarouselState extends State<CategoriesCarousel> {
                 productImages: category.productImages,
                 productCount: category.productCount,
                 backgroundColor: backgroundColor,
+                categoryImageUrl: category.imageUrl,
                 onTap: widget.onCategoryTap != null
                     ? () => widget.onCategoryTap!(category)
                     : null,

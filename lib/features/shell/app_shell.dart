@@ -1,13 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../home/home_page.dart';
-import '../you/you_page.dart';
+import '../menu/menu_page.dart';
 import '../../core/cart/cart_state.dart';
 import '../catalog/product.dart';
 import '../catalog/widgets/product_detail_dialog.dart';
 import '../../main.dart'; // for catalogApi
 import '../orders/checkout_page.dart';
-import '../subdealer/pages/sd_catalog_page.dart';
 import 'categories_nav_page.dart';
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
@@ -46,8 +45,8 @@ class _AppShellState extends State<AppShell> {
       HomePage(role: widget.role), // 0 Home
       CategoriesNavPage(), // 1 Categories (moved up)
       const _CartPage(), // 2 Cart
-      YouPage(role: widget.role), // 3 You (role menus + logout)
-      SdCatalogPage(), // 4 Products (hidden, switched to programmatically)
+      MenuPage(role: widget.role), // 3 Menu (role menus + logout)
+      // SdCatalogPage(), // 4 Products (hidden, switched to programmatically)
     ];
 
     return ValueListenableBuilder<int>(
@@ -174,7 +173,9 @@ class _CartPageState extends State<_CartPage> {
   Future<void> _loadProducts() async {
     setState(() => loading = true);
     try {
-      all = await catalogApi.listProducts();
+      final allProducts = await catalogApi.listProducts();
+      // Filter out spare parts from cart view
+      all = allProducts.where((p) => !p.isSparePart).toList();
     } on DioException catch (e) {
       if (e.response?.statusCode == 401 && mounted) {
         // Session expired, redirect to login
@@ -525,7 +526,9 @@ class _FavoritesPageState extends State<FavoritesPage> {
   Future<void> _loadProducts() async {
     setState(() => loading = true);
     try {
-      all = await catalogApi.listProducts();
+      final allProducts = await catalogApi.listProducts();
+      // Filter out spare parts from favorites view
+      all = allProducts.where((p) => !p.isSparePart).toList();
     } on DioException catch (e) {
       if (e.response?.statusCode == 401 && mounted) {
         // Session expired, redirect to login

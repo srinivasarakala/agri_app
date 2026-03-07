@@ -74,6 +74,7 @@ class _CategoriesGridPageState extends State<CategoriesGridPage> {
                 categoryName: category.name,
                 productImages: category.productImages,
                 productCount: category.productCount,
+                categoryImageUrl: category.imageUrl,
                 onTap: widget.onCategoryTap != null ? () => widget.onCategoryTap!(category) : null,
               );
             },

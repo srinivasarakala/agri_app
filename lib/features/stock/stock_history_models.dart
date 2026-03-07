@@ -5,9 +5,9 @@ class StockHistoryEntry {
   final String productName;
   final String productUnit;
   final String changeType;
-  final int quantityChange;
-  final int stockBefore;
-  final int stockAfter;
+  final double quantityChange;
+  final double stockBefore;
+  final double stockAfter;
   final int? orderId;
   final String? notes;
   final int? createdById;
@@ -41,15 +41,9 @@ class StockHistoryEntry {
       productName: json['product_name'] as String? ?? '',
       productUnit: json['product_unit'] as String? ?? '',
       changeType: json['change_type'] as String? ?? '',
-      quantityChange: json['quantity_change'] is int
-          ? json['quantity_change']
-          : int.tryParse(json['quantity_change']?.toString() ?? '') ?? 0,
-      stockBefore: json['stock_before'] is int
-          ? json['stock_before']
-          : int.tryParse(json['stock_before']?.toString() ?? '') ?? 0,
-      stockAfter: json['stock_after'] is int
-          ? json['stock_after']
-          : int.tryParse(json['stock_after']?.toString() ?? '') ?? 0,
+      quantityChange: _parseDouble(json['quantity_change']),
+      stockBefore: _parseDouble(json['stock_before']),
+      stockAfter: _parseDouble(json['stock_after']),
       orderId: json['order_id'] != null
           ? (json['order_id'] is int
                 ? json['order_id']
@@ -64,6 +58,13 @@ class StockHistoryEntry {
       createdByName: json['created_by_name'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
+  }
+
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
   }
 
   String get changeTypeDisplay {

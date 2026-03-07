@@ -12,6 +12,7 @@ import '../catalog/product_video.dart';
 import '../catalog/product_details_page.dart';
 import '../catalog/widgets/featured_products_carousel.dart';
 import '../catalog/widgets/categories_carousel.dart';
+import '../catalog/widgets/spare_parts_carousel.dart';
 import '../catalog/widgets/product_videos_carousel.dart';
 import '../catalog/unified_products_page.dart';
 import 'package:dio/dio.dart';
@@ -35,6 +36,9 @@ class _HomePageState extends State<HomePage> {
   List<Category> categories = [];
   bool categoriesLoading = true;
   String? categoriesError;
+  List<Category> sparePartsCategories = [];
+  bool sparePartsCategoriesLoading = true;
+  String? sparePartsCategoriesError;
   List<ProductVideo> videos = [];
   bool videosLoading = true;
   String? videosError;
@@ -50,6 +54,7 @@ class _HomePageState extends State<HomePage> {
     _loadUserCartIfNeeded();
     _load();
     _loadCategories();
+    _loadSparePartsCategories();
     _loadVideos();
     _loadBrands();
   }
@@ -93,10 +98,12 @@ class _HomePageState extends State<HomePage> {
     });
     try {
       final all = await catalogApi.listProducts();
+      // Filter out spare parts from regular product listings
+      final regularProducts = all.where((p) => !p.isSparePart).toList();
       // Sort by date (newest first)
-      all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      allProducts = all;
-      featured = all.take(8).toList();
+      regularProducts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      allProducts = regularProducts;
+      featured = regularProducts.take(8).toList();
     } on DioException catch (e) {
       if (e.response?.statusCode == 401 && mounted) {
         // Session expired, redirect to login
@@ -129,6 +136,57 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<void> _loadSparePartsCategories() async {
+    setState(() {
+      sparePartsCategoriesLoading = true;
+      sparePartsCategoriesError = null;
+    });
+    try {
+      // Load all products and filter spare parts
+      final allProducts = await catalogApi.listProducts();
+      final spareParts = allProducts.where((p) => p.isSparePart).toList();
+      
+      // Group spare parts by category
+      final categoryMap = <int, List<Product>>{};
+      for (final part in spareParts) {
+        if (part.categoryId != null) {
+          categoryMap.putIfAbsent(part.categoryId!, () => []).add(part);
+        }
+      }
+      
+      // Load all categories and create new category objects with spare parts counts/images
+      final allCategories = await catalogApi.listCategories();
+      sparePartsCategories = allCategories
+          .where((cat) => categoryMap.containsKey(cat.id))
+          .map((cat) {
+            final sparePartsInCategory = categoryMap[cat.id]!;
+            final sparePartImages = sparePartsInCategory
+                .where((p) => p.imageUrl != null && p.imageUrl!.isNotEmpty)
+                .take(4)
+                .map((p) => p.imageUrl!)
+                .toList();
+            
+            
+            // Create a new category with spare parts count and images
+            return Category(
+              id: cat.id,
+              name: cat.name,
+              description: cat.description,
+              imageUrl: cat.imageUrl,
+              productCount: sparePartsInCategory.length,
+              productImages: sparePartImages,
+              is_active: cat.is_active,
+              isDynamic: cat.isDynamic,
+            );
+          })
+          .toList();
+    } catch (e) {
+      sparePartsCategoriesError = "Failed to load spare parts categories";
+    } finally {
+      setState(() => sparePartsCategoriesLoading = false);
+    }
+  }
+
   Future<void> _loadVideos() async {
     setState(() {
       videosLoading = true;
@@ -148,6 +206,7 @@ class _HomePageState extends State<HomePage> {
     await Future.wait([
       _load(),
       _loadCategories(),
+      _loadSparePartsCategories(),
       _loadVideos(),
       _loadBrands(),
     ]);
@@ -221,108 +280,6 @@ Widget build(BuildContext context) {
 
         const SizedBox(height: 24),
 
-        /// 🆕 New Arrivals
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: const Text(
-            "New Arrivals",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        if (loading)
-          const Padding(
-            padding: EdgeInsets.all(20),
-            child: Center(child: CircularProgressIndicator()),
-          )
-        else if (error != null)
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Text(error!, style: TextStyle(color: AppTheme.errorColor)),
-          )
-        else
-          SizedBox(
-            height: 222,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: featured.length,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              itemBuilder: (context, i) {
-                final product = featured[i];
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            ProductDetailsPage(product: product),
-                      ),
-                    );
-                  },
-                  child: SizedBox(
-                    width: 160,
-                    child: Card(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 2,
-                      margin: const EdgeInsets.only(right: 12),
-                      child: Padding(
-                        padding: const EdgeInsets.all(10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Container(
-                                color: Colors.grey.shade100,
-                                height: 120,
-                                width: double.infinity,
-                                child: product.imageUrl != null &&
-                                        product.imageUrl!.isNotEmpty
-                                    ? Image.network(
-                                        product.imageUrl!,
-                                        fit: BoxFit.cover,
-                                      )
-                                    : const Icon(Icons.image,
-                                        size: 48, color: Colors.grey),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              product.name,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Rs. ${product.sellingPrice.toStringAsFixed(2)}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.deepOrange,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-        const SizedBox(height: 24),
-
         /// 🗂 Shop by Category
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -353,60 +310,44 @@ Widget build(BuildContext context) {
 
         const SizedBox(height: 24),
 
-        /// 🔥 Top Products
-        TopProductsCarousel(key: ValueKey(_topProductsKey)),
-
-        const SizedBox(height: 24),
-
-        /// 📥 Download Catalogue
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content:
-                        Text("Download catalogue feature coming soon"),
-                  ),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppTheme.primaryColor,
-                      AppTheme.accentColor
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
+        /// � Shop Spare Parts
+        if (sparePartsCategoriesLoading || sparePartsCategoriesError != null || sparePartsCategories.isNotEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                const Icon(Icons.build, size: 20, color: Colors.grey),
+                const SizedBox(width: 8),
+                const Text(
+                  "Shop by Spare Parts",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
                 ),
-                child: Row(
-                  children: const [
-                    Icon(Icons.download,
-                        color: AppTheme.backgroundColor, size: 28),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        "Download Catalogue",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.backgroundColor,
-                        ),
-                      ),
-                    ),
-                    Icon(Icons.arrow_forward,
-                        color: AppTheme.backgroundColor, size: 20),
-                  ],
-                ),
-              ),
+              ],
             ),
           ),
-        ),
+          const SizedBox(height: 12),
+          SparePartsCarousel(
+            categories: sparePartsCategories,
+            isLoading: sparePartsCategoriesLoading,
+            error: sparePartsCategoriesError,
+            onCategoryTap: (category) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => UnifiedProductsPage(
+                    categoryId: category.id,
+                    categoryName: category.name,
+                    showOnlySpareParts: true,
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        /// �🔥 Top Products
+        TopProductsCarousel(key: ValueKey(_topProductsKey)),
 
         const SizedBox(height: 24),
 
