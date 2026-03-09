@@ -24,33 +24,31 @@ class CategoryCard extends StatelessWidget {
     return Card(
       elevation: 1,
       color: backgroundColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Image Display - Category image if available, else product collage
             Expanded(
-              flex: 65,
+              flex: 55,
               child: ClipRRect(
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
+                  topLeft: Radius.circular(8),
+                  topRight: Radius.circular(8),
                 ),
                 child: Container(
                   width: double.infinity,
                   color: const Color(0xFFF5F5F7),
-                  child: categoryImageUrl != null && categoryImageUrl!.isNotEmpty
-                      ? _buildCategoryImage()
-                      : _buildProductCollage(),
+                  child: _buildCategoryImage(),
                 ),
               ),
             ),
             // Category Name at bottom center
             Expanded(
-              flex: 35,
+              flex: 45,
               child: Container(
                 padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
                 width: double.infinity,
@@ -79,7 +77,7 @@ class CategoryCard extends StatelessWidget {
   Widget _buildCategoryImage() {
     return CachedNetworkImage(
       imageUrl: categoryImageUrl!,
-      fit: BoxFit.cover,
+      fit: BoxFit.fill,
       errorWidget: (_, __, ___) => const Icon(
         Icons.category,
         size: 64,

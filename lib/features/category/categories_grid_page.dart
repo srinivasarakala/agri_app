@@ -81,7 +81,6 @@ class _CategoriesGridPageState extends State<CategoriesGridPage> {
     return Scaffold(
       body: Column(
         children: [
-          // Header title background should be transparent
           if (widget.title.isNotEmpty)
             Container(
               width: double.infinity,

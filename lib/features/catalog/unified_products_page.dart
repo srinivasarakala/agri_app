@@ -234,7 +234,7 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                   crossAxisCount: 2,
                                   mainAxisSpacing: 12,
                                   crossAxisSpacing: 12,
-                                  childAspectRatio: 0.78,
+                                  childAspectRatio: 0.70,
                                 ),
                                 itemCount: sparePartsProducts.length,
                                 itemBuilder: (context, i) {
@@ -276,7 +276,7 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                                 child: p.imageUrl != null && p.imageUrl!.isNotEmpty
                                                     ? CachedNetworkImage(
                                                         imageUrl: p.imageUrl!,
-                                                        fit: BoxFit.cover,
+                                                        fit: BoxFit.fill,
                                                         width: double.infinity,
                                                         height: double.infinity,
                                                         errorWidget: (_, __, ___) => const Icon(
@@ -301,7 +301,7 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                               children: [
                                                 Text(
                                                   p.name,
-                                                  maxLines: 1,
+                                                  maxLines: 2,
                                                   overflow: TextOverflow.ellipsis,
                                                   style: const TextStyle(
                                                     fontWeight: FontWeight.bold,
@@ -312,7 +312,7 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                                 const SizedBox(height: 4),
                                                 Text(
                                                   p.categoryName ?? 'General',
-                                                  maxLines: 1,
+                                                  maxLines: 2,
                                                   overflow: TextOverflow.ellipsis,
                                                   style: TextStyle(
                                                     fontSize: 13,
@@ -395,7 +395,7 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                                     child: p.imageUrl != null && p.imageUrl!.isNotEmpty
                                                         ? CachedNetworkImage(
                                                             imageUrl: p.imageUrl!,
-                                                            fit: BoxFit.cover,
+                                                            fit: BoxFit.fill,
                                                             width: double.infinity,
                                                             height: double.infinity,
                                                             errorWidget: (_, __, ___) => const Icon(
@@ -524,7 +524,7 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                     child: b.imageUrl != null && b.imageUrl!.isNotEmpty
                                         ? CachedNetworkImage(
                                             imageUrl: b.imageUrl!,
-                                            fit: BoxFit.contain,
+                                            fit: BoxFit.fill,
                                           )
                                         : const Icon(Icons.image, size: 48, color: Colors.grey),
                                   ),

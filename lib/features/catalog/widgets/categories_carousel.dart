@@ -41,33 +41,33 @@ class _CategoriesCarouselState extends State<CategoriesCarousel> {
       return const SizedBox.shrink();
     }
 
-    // Calculate number of pages (2 categories per row, 2 rows = 4 categories per page)
-    final pageCount = (widget.categories.length / 4).ceil();
+    // Calculate number of pages (3 columns x 2 rows = 6 categories per page)
+    final pageCount = (widget.categories.length / 6).ceil();
 
     return SizedBox(
-      height: 400, // Fixed height for 2 rows with fixed card sizes
+      height: 302, // Reduced height for 2 rows
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(14, 6, 14, 6),
+        padding: const EdgeInsets.fromLTRB(12, 6, 14, 6),
         itemCount: pageCount,
         itemBuilder: (context, pageIndex) {
-          final startIndex = pageIndex * 4;
-          final endIndex = (startIndex + 4).clamp(0, widget.categories.length);
+          final startIndex = pageIndex * 6;
+          final endIndex = (startIndex + 6).clamp(0, widget.categories.length);
           final pageCategories = widget.categories.sublist(startIndex, endIndex);
 
           return SizedBox(
             width: MediaQuery.of(context).size.width - 28, // Full width minus padding
-            height: 398, // Explicit height for the grid to show both rows
+            height: 300, // Explicit height for the grid to show both rows
             child: Padding(
-              padding: const EdgeInsets.only(right: 12),
+              padding: const EdgeInsets.only(right: 6),
               child: GridView.builder(
                 padding: EdgeInsets.zero,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, // 2 columns
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 0.95, // Adjusted for fixed card sizes
+                  crossAxisCount: 3, // 3 columns
+                  mainAxisSpacing: 6,
+                  crossAxisSpacing: 6,
+                  childAspectRatio: 0.85, // Card shape
                 ),
                 itemCount: pageCategories.length,
                 itemBuilder: (context, index) {

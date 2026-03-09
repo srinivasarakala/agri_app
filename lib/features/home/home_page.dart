@@ -355,13 +355,13 @@ Widget build(BuildContext context) {
               child: Stack(
                 children: [
                   Container(
-                    height: 60,
+                    height: 55,
                     alignment: Alignment.center,
                     child: FractionallySizedBox(
                       widthFactor: 0.5,
                       child: Image.asset(
                       'assets/images/top_banner.png',
-                      height: 60,
+                      height: 55,
                       fit: BoxFit.contain,
                       alignment: Alignment.center,
                     ),

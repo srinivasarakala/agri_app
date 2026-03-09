@@ -51,7 +51,7 @@ Future<String> _resolveBaseUrl() async {
     final info = DeviceInfoPlugin();
     if (Platform.isAndroid) {
       final android = await info.androidInfo;
-      return android.isPhysicalDevice ? realDeviceUrl : 'http://10.0.2.2:8000';
+      return android.isPhysicalDevice ? realDeviceUrl : 'https://myhitechagro.in';//'http://10.0.2.2:8000';
     } else if (Platform.isIOS) {
       final ios = await info.iosInfo;
       return ios.isPhysicalDevice ? realDeviceUrl : 'http://127.0.0.1:8000';

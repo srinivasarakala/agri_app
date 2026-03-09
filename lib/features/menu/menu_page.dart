@@ -46,6 +46,12 @@ Widget _collapsibleGroup({
     );
 
 class MenuPage extends StatelessWidget {
+    void _showProfileInfo(BuildContext context) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ProfilePage()),
+      );
+    }
   final String role;
   const MenuPage({super.key, required this.role});
 
@@ -83,7 +89,7 @@ class MenuPage extends StatelessWidget {
 
     return CustomScrollView(
       slivers: [
-        // Sticky Top Banner with Title
+        // Sticky Top Banner with Title and Profile Icon
         SliverAppBar(
           pinned: true,
           floating: false,
@@ -94,33 +100,59 @@ class MenuPage extends StatelessWidget {
           flexibleSpace: SafeArea(
             child: Container(
               color: AppTheme.backgroundColor,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              child: Stack(
                 children: [
-                  Container(
-                    height: 55,
-                    alignment: Alignment.center,
-                    child: FractionallySizedBox(
-                      widthFactor: 0.5,
-                      child: Image.asset(
-                        'assets/images/top_banner.png',
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
                         height: 55,
-                        fit: BoxFit.contain,
                         alignment: Alignment.center,
+                        child: FractionallySizedBox(
+                          widthFactor: 0.5,
+                          child: Image.asset(
+                            'assets/images/top_banner.png',
+                            height: 55,
+                            fit: BoxFit.contain,
+                            alignment: Alignment.center,
+                          ),
+                        ),
                       ),
-                    ),
+                      Container(
+                        height: 45,
+                        alignment: Alignment.center,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: const Text(
+                          "Menu",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  Container(
-                    height: 45,
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: const Text(
-                      "Menu",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                  Positioned(
+                    right: 16,
+                    top: 8,
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => _showProfileInfo(context),
+                        child: Container(
+                          height: 44,
+                          width: 44,
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.account_circle,
+                            size: 32,
+                            color: Color(0xFF2E7D32),
+                          ),
+                        ),
                       ),
                     ),
                   ),
