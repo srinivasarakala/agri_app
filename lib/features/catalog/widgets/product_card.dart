@@ -16,108 +16,102 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final inStock = p.globalStock > 0;
-
     return InkWell(
       onTap: onTap,
       child: Card(
-        elevation: 1.5,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image placeholder (replace with real image later)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: AspectRatio(
-                  aspectRatio: 1.6,
+        elevation: 0,
+        color: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Product Image
+            Expanded(
+              flex: 3,
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Color(0xFFF5F7FA),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
                   child: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
                       ? CachedNetworkImage(
                           imageUrl: p.imageUrl!,
                           fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => Container(
-                            color: Colors.grey.shade100,
-                            child: const Icon(Icons.image, size: 40, color: Colors.grey),
+                          width: double.infinity,
+                          height: double.infinity,
+                          errorWidget: (_, __, ___) => const Icon(
+                            Icons.image,
+                            size: 50,
+                            color: Colors.grey,
                           ),
                         )
-                      : Container(
-                          color: Colors.grey.shade100,
-                          child: const Icon(Icons.image, size: 40, color: Colors.grey),
+                      : const Icon(
+                          Icons.image,
+                          size: 50,
+                          color: Colors.grey,
                         ),
                 ),
               ),
+            ),
 
-
-
-              const SizedBox(height: 8),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      p.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+            // Product Details
+            Container(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Product Name/Model
+                  Text(
+                    p.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.black,
                     ),
+                  ),
 
-                    const SizedBox(height: 4),
-                    Text(
-                      "${p.sku} • ${p.unit}",
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                  const SizedBox(height: 4),
+
+                  // Category
+                  Text(
+                    p.categoryName ?? 'General',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade600,
                     ),
+                  ),
 
-                    const Spacer(),
+                  const SizedBox(height: 8),
 
-                    Row(
-                      children: [
-                        Text(
-                          "₹${p.sellingPrice}",
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: inStock ? Colors.green.withOpacity(0.12) : Colors.red.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            inStock ? "In Stock" : "Out",
-                            style: TextStyle(
-                              color: inStock ? Colors.green.shade800 : Colors.red.shade800,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
+                  // Price
+                  Text(
+                    "₹ ${p.sellingPrice.toStringAsFixed(2)}",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.black,
                     ),
-
-                    const SizedBox(height: 8),
-
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: inStock ? onAdd : null,
-                        style: ElevatedButton.styleFrom(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                        ),
-                        child: const Text("Add"),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

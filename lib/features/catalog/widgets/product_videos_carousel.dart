@@ -21,8 +21,6 @@ class ProductVideosCarousel extends StatefulWidget {
 }
 
 class _ProductVideosCarouselState extends State<ProductVideosCarousel> {
-  late PageController _pageController;
-  int _currentPage = 0;
   YoutubePlayerController? _ytController;
 
   void _showEmbeddedVideo(BuildContext context, String youtubeUrl) {
@@ -68,14 +66,7 @@ class _ProductVideosCarouselState extends State<ProductVideosCarousel> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _pageController = PageController();
-  }
-
-  @override
   void dispose() {
-    _pageController.dispose();
     _ytController?.dispose();
     super.dispose();
   }
@@ -103,48 +94,74 @@ class _ProductVideosCarouselState extends State<ProductVideosCarousel> {
       return const SizedBox.shrink();
     }
 
-    return Column(
-      children: [
-        SizedBox(
-          height: 280,
-          child: PageView.builder(
-            controller: _pageController,
-            onPageChanged: (index) {
-              setState(() => _currentPage = index);
-            },
-            itemCount: widget.videos.length,
-            itemBuilder: (context, index) {
-              final video = widget.videos[index];
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+    // For fewer than 3 videos, show larger thumbnails
+    if (widget.videos.length < 3) {
+      return SizedBox(
+        height: 280,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          itemCount: widget.videos.length,
+          itemBuilder: (context, index) {
+            return SizedBox(
+              width: MediaQuery.of(context).size.width * 0.85, // Larger width for fewer videos
+              child: Padding(
+                padding: const EdgeInsets.only(right: 12),
                 child: _VideoCard(
-                  video: video,
-                  onTap: () => _showEmbeddedVideo(context, video.youtubeUrl),
+                  video: widget.videos[index],
+                  onTap: () => _showEmbeddedVideo(context, widget.videos[index].youtubeUrl),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
-        const SizedBox(height: 12),
-        // Dots indicator
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(
-            widget.videos.length,
-            (index) => Container(
-              width: 8,
-              height: 8,
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _currentPage == index
-                    ? Colors.green.shade700
-                    : Colors.grey.shade300,
+      );
+    }
+
+    // Calculate the number of columns needed (2 videos per column, so we need ceil(videos.length / 2) columns)
+    final columnCount = (widget.videos.length / 2).ceil();
+
+    return SizedBox(
+      height: 280, // Height for 2 rows of videos
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        itemCount: columnCount,
+        itemBuilder: (context, columnIndex) {
+          final firstVideoIndex = columnIndex * 2;
+          final secondVideoIndex = firstVideoIndex + 1;
+          final hasSecondVideo = secondVideoIndex < widget.videos.length;
+
+          return SizedBox(
+            width: MediaQuery.of(context).size.width * 0.45, // Each column takes 40% of screen width
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Column(
+                children: [
+                  // First video (top row)
+                  Expanded(
+                    child: _VideoCard(
+                      video: widget.videos[firstVideoIndex],
+                      onTap: () => _showEmbeddedVideo(context, widget.videos[firstVideoIndex].youtubeUrl),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Second video (bottom row) if available
+                  if (hasSecondVideo)
+                    Expanded(
+                      child: _VideoCard(
+                        video: widget.videos[secondVideoIndex],
+                        onTap: () => _showEmbeddedVideo(context, widget.videos[secondVideoIndex].youtubeUrl),
+                      ),
+                    )
+                  else
+                    Expanded(child: Container()), // Empty space if no second video
+                ],
               ),
             ),
-          ),
-        ),
-      ],
+          );
+        },
+      ),
     );
   }
 }
@@ -168,9 +185,10 @@ class _VideoCard extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            color: Colors.white,
+            color: Colors.transparent,
             boxShadow: [
               BoxShadow(
+                //Fix below issue
                 color: Colors.black.withOpacity(0.08),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
@@ -180,7 +198,48 @@ class _VideoCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Video title and description at the top
+              // Video thumbnail
+              Expanded(
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: CachedNetworkImage(
+                        imageUrl: video.thumbnailUrl,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => Container(
+                          color: Colors.grey.shade200,
+                          child: const Center(
+                            child: Icon(
+                              Icons.play_circle_outline,
+                              size: 48,
+                             // color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Play button overlay
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.play_circle_filled,
+                            size: 56,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Video title and description at the bottom
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
@@ -208,51 +267,6 @@ class _VideoCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
-                  ],
-                ),
-              ),
-              // Video thumbnail
-              Expanded(
-                child: Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        bottom: Radius.circular(12),
-                      ),
-                      child: CachedNetworkImage(
-                        imageUrl: video.thumbnailUrl,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => Container(
-                          color: Colors.grey.shade200,
-                          child: const Center(
-                            child: Icon(
-                              Icons.play_circle_outline,
-                              size: 48,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Play button overlay
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
-                          borderRadius: const BorderRadius.vertical(
-                            bottom: Radius.circular(12),
-                          ),
-                        ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.play_circle_filled,
-                            size: 56,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),

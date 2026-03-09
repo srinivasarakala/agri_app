@@ -24,7 +24,7 @@ class _TopProductsCarouselState extends State<TopProductsCarousel> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.92, initialPage: 0);
+    _pageController = PageController(viewportFraction: 0.85, initialPage: 0);
     _loadImages();
   }
 
@@ -66,47 +66,42 @@ class _TopProductsCarouselState extends State<TopProductsCarousel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Section header with background
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-          color: Colors.white,
+        // Section header
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 "Our Top Products",
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
                   color: Colors.black,
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "Hand-picked items you'll love",
-                style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
               ),
             ],
           ),
         ),
-
-        // Carousel section with teal background
+        
+        const SizedBox(height: 8),
+        
+        // Carousel section
         Container(
-          color: const Color(0xFFB2EBF2), // Light teal/cyan color
-          padding: const EdgeInsets.symmetric(vertical: 30),
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 20),
           child: loading
               ? const SizedBox(
-                  height: 320,
+                  height: 250,
                   child: Center(
-                    child: CircularProgressIndicator(color: Colors.white),
+                    child: CircularProgressIndicator(),
                   ),
                 )
               : Column(
                   children: [
                     // Image carousel
                     SizedBox(
-                      height: 320,
+                      height: MediaQuery.of(context).size.height * 0.25, // 25% of screen height
                       child: PageView.builder(
                         controller: _pageController,
                         onPageChanged: (index) {
@@ -117,35 +112,35 @@ class _TopProductsCarouselState extends State<TopProductsCarousel> {
                         itemCount: featuredImages.length,
                         itemBuilder: (context, index) {
                           return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
                             child: _ImageCard(imageUrl: featuredImages[index]),
                           );
                         },
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-                    // Dot indicators
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(
-                        featuredImages.length,
-                        (index) => Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: _currentPage == index
-                                ? Colors.white
-                                : Colors.white.withOpacity(0.5),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
+                // Dot indicators
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    featuredImages.length,
+                    (index) => Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: _currentPage == index ? 32 : 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: _currentPage == index
+                            ? Colors.red
+                            : Colors.grey.shade400,
+                        borderRadius: BorderRadius.circular(5),
                       ),
                     ),
-                  ],
+                  ),
                 ),
+              ],
+            ),
         ),
       ],
     );
@@ -175,52 +170,50 @@ class _ImageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 8,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            CachedNetworkImage(
-              imageUrl: imageUrl,
-              fit: BoxFit.contain,
-              width: double.infinity,
-              height: double.infinity,
-              placeholder: (context, url) => Center(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          CachedNetworkImage(
+            imageUrl: imageUrl,
+            fit: BoxFit.contain,
+            width: double.infinity,
+            height: double.infinity,
+            placeholder: (context, url) => Container(
+              color: Colors.grey.shade100,
+              child: const Center(
                 child: CircularProgressIndicator(),
               ),
-              errorWidget: (context, url, error) => Container(
-                color: Colors.grey.shade200,
-                child: Center(
-                  child: Icon(
-                    Icons.image_outlined,
-                    size: 80,
-                    color: Colors.grey.shade400,
-                  ),
+            ),
+            errorWidget: (context, url, error) => Container(
+              color: Colors.grey.shade200,
+              child: Center(
+                child: Icon(
+                  Icons.image_outlined,
+                  size: 80,
+                  color: Colors.grey.shade400,
                 ),
               ),
             ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: Material(
-                color: Colors.transparent,
-                child: IconButton(
-                  icon: const Icon(Icons.share_rounded, color: Colors.white),
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.black38,
-                    padding: const EdgeInsets.all(6),
-                    minimumSize: const Size(36, 36),
-                  ),
-                  onPressed: () => _share(context),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Material(
+              color: Colors.transparent,
+              child: IconButton(
+                icon: const Icon(Icons.share_rounded, color: Colors.white),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.black38,
+                  padding: const EdgeInsets.all(6),
+                  minimumSize: const Size(36, 36),
                 ),
+                onPressed: () => _share(context),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

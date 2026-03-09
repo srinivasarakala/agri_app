@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:pavan_agro/core/theme/app_theme.dart';
 import '../home/home_page.dart';
 import '../menu/menu_page.dart';
 import '../../core/cart/cart_state.dart';
@@ -107,7 +108,7 @@ class _AppShellState extends State<AppShell> {
                   ),
                   const BottomNavigationBarItem(
                     icon: Icon(Icons.category),
-                    label: "Categories",
+                    label: "Spare Parts",
                   ),
                   BottomNavigationBarItem(
                     icon: Stack(
@@ -175,8 +176,8 @@ class _CartPageState extends State<_CartPage> {
     setState(() => loading = true);
     try {
       final allProducts = await catalogApi.listProducts();
-      // Filter out spare parts from cart view
-      all = allProducts.where((p) => !p.isSparePart).toList();
+      // Show all products in cart (including spare parts)
+      all = allProducts;
     } on DioException catch (e) {
       if (e.response?.statusCode == 401 && mounted) {
         // Session expired, redirect to login
@@ -201,37 +202,72 @@ class _CartPageState extends State<_CartPage> {
         });
 
         return Scaffold(
-          backgroundColor: Colors.white,
-          body: Column(
-            children: [
-              // Header
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
-                color: Colors.white,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(
-                      Icons.shopping_cart,
-                      color: Colors.green,
-                      size: 32,
+          body: CustomScrollView(
+            slivers: [
+              // Sticky Top Banner with Title
+              SliverAppBar(
+                pinned: true,
+                floating: false,
+                backgroundColor: AppTheme.backgroundColor,
+                elevation: 0,
+                toolbarHeight: 100, // Adjusted height for banner (55) + title (45)
+                automaticallyImplyLeading: false,
+                flexibleSpace: SafeArea(
+                  child: Container(
+                    color: AppTheme.backgroundColor,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          height: 55,
+                          alignment: Alignment.center,
+                          child: FractionallySizedBox(
+                            widthFactor: 0.5,
+                            child: Image.asset(
+                              'assets/images/top_banner.png',
+                              height: 55,
+                              fit: BoxFit.contain,
+                              alignment: Alignment.center,
+                            ),
+                          ),
+                        ),
+                        // Header
+                        Container(
+                          height: 45,
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(
+                                Icons.shopping_cart,
+                                color: Colors.green,
+                                size: 32,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                "Your Cart",
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(width: 8),
-                    Text(
-                      "Your Cart",
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
 
               // Cart Items List
-              Expanded(
-                child: loading
+              SliverFillRemaining(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: loading
                     ? const Center(child: CircularProgressIndicator())
                     : totalItems == 0
                         ? const Center(
@@ -413,11 +449,11 @@ class _CartPageState extends State<_CartPage> {
                               );
                             },
                           ),
-              ),
+                    ),
 
-              // Bottom Summary Section
-              if (totalItems > 0)
-                Container(
+                    // Bottom Summary Section
+                    if (totalItems > 0)
+                      Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade100,
@@ -497,277 +533,9 @@ class _CartPageState extends State<_CartPage> {
                     ],
                   ),
                 ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-
-class FavoritesPage extends StatefulWidget {
-  const FavoritesPage();
-
-  @override
-  State<FavoritesPage> createState() => _FavoritesPageState();
-}
-
-class _FavoritesPageState extends State<FavoritesPage> {
-  List<Product> all = [];
-  bool loading = true;
-  String? error;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProducts();
-  }
-
-  Future<void> _loadProducts() async {
-    setState(() => loading = true);
-    try {
-      final allProducts = await catalogApi.listProducts();
-      // Filter out spare parts from favorites view
-      all = allProducts.where((p) => !p.isSparePart).toList();
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 401 && mounted) {
-        // Session expired, redirect to login
-        currentSession = null;
-        if (mounted) context.go('/login');
-      } else {
-        error = "Failed to load products";
-      }
-    } catch (e) {
-      error = "Failed to load products";
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<Set<int>>(
-      valueListenable: favorites,
-      builder: (_, favSet, __) {
-        final favoriteProducts = all
-            .where((p) => favSet.contains(p.id))
-            .toList();
-
-        return RefreshIndicator(
-          onRefresh: _loadProducts,
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              Container(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.green.shade800, Colors.green.shade500],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Text(
-                  "Favorites (${favoriteProducts.length})",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 14),
-
-              if (loading)
-                const Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (error != null)
-                Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Text(
-                    error!,
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                )
-              else if (favoriteProducts.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Center(
-                    child: Text(
-                      "No favorites yet\nHeart your favorite products to see them here",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey, fontSize: 14),
-                    ),
-                  ),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "${favoriteProducts.length} Favorite(s)",
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: favoriteProducts.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (_, i) {
-                          final p = favoriteProducts[i];
-                          return InkWell(
-                            onTap: () => showProductDetail(context, p),
-                            child: Card(
-                              elevation: 1,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(10),
-                                child: Row(
-                                  children: [
-                                    // Product image
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Container(
-                                        width: 80,
-                                        height: 80,
-                                        color: Colors.grey.shade100,
-                                        child:
-                                            (p.imageUrl != null &&
-                                                p.imageUrl!.isNotEmpty)
-                                            ? CachedNetworkImage(
-                                                imageUrl: p.imageUrl!,
-                                                fit: BoxFit.cover,
-                                              )
-                                            : const Icon(
-                                                Icons.image,
-                                                color: Colors.grey,
-                                              ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-
-                                    // Product details
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            p.name,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            p.sku,
-                                            style: TextStyle(
-                                              color: Colors.grey.shade600,
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Row(
-                                            children: [
-                                              Text(
-                                                "₹${p.sellingPrice.toStringAsFixed(2)}",
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w800,
-                                                  color: Colors.green,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                              if (p.mrp > p.sellingPrice) ...[
-                                                const SizedBox(width: 6),
-                                                Text(
-                                                  "₹${p.mrp.toStringAsFixed(2)}",
-                                                  style: TextStyle(
-                                                    color: Colors.grey.shade500,
-                                                    fontSize: 11,
-                                                    decoration: TextDecoration
-                                                        .lineThrough,
-                                                  ),
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-
-                                    // Remove from favorites button
-                                    Column(
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.favorite,
-                                            color: Colors.red,
-                                            size: 20,
-                                          ),
-                                          onPressed: () async {
-                                            try {
-                                              await catalogApi.toggleFavorite(
-                                                p.id,
-                                              );
-                                              toggleFavorite(p.id);
-                                            } on DioException catch (e) {
-                                              if (e.response?.statusCode == 401 && mounted) {
-                                                // Session expired, redirect to login
-                                                currentSession = null;
-                                                if (mounted) context.go('/login');
-                                              } else if (mounted) {
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text("Error: $e"),
-                                                  ),
-                                                );
-                                              }
-                                            } catch (e) {
-                                              if (mounted) {
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text("Error: $e"),
-                                                  ),
-                                                );
-                                              }
-                                            }
-                                          },
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(
-                                            minWidth: 30,
-                                            minHeight: 30,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
             ],
           ),
         );
@@ -775,3 +543,4 @@ class _FavoritesPageState extends State<FavoritesPage> {
     );
   }
 }
+

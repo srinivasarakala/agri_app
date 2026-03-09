@@ -10,6 +10,7 @@ class CategoriesGridPage extends StatefulWidget {
   final String? error;
   final void Function(Category)? onCategoryTap;
   final Future<void> Function()? onRefresh;
+  final String title;
 
   const CategoriesGridPage({
     Key? key,
@@ -18,6 +19,7 @@ class CategoriesGridPage extends StatefulWidget {
     this.error,
     this.onCategoryTap,
     this.onRefresh,
+    this.title = 'Categories',
   }) : super(key: key);
 
   @override
@@ -29,57 +31,102 @@ class _CategoriesGridPageState extends State<CategoriesGridPage> {
   Widget build(BuildContext context) {
     if (widget.isLoading) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Categories'),
-          backgroundColor: AppTheme.backgroundColor,
-          foregroundColor: AppTheme.textColor,
-          elevation: 1,
+        body: Column(
+          children: [
+            if (widget.title.isNotEmpty)
+              Container(
+                //width: double.infinity,
+                //padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                color: Colors.transparent,
+                child: Text(
+                  textAlign: TextAlign.center,
+                  widget.title,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            const Expanded(child: Center(child: CircularProgressIndicator())),
+          ],
         ),
-        body: const Center(child: CircularProgressIndicator()),
       );
     }
     if (widget.error != null) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Categories'),
-          backgroundColor: AppTheme.backgroundColor,
-          foregroundColor: AppTheme.textColor,
-          elevation: 1,
+        body: Column(
+          children: [
+            if (widget.title.isNotEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                color: Colors.transparent,
+                child: Text(
+                  widget.title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            Expanded(child: Center(child: Text(widget.error!, style: TextStyle(color: AppTheme.errorColor)))),          
+          ],
         ),
-        body: Center(child: Text(widget.error!, style: TextStyle(color: AppTheme.errorColor))),
       );
     }
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Categories'),
-        backgroundColor: AppTheme.backgroundColor,
-        foregroundColor: AppTheme.textColor,
-        elevation: 1,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(12),
-        child: RefreshIndicator(
-          onRefresh: widget.onRefresh ?? () async {},
-          child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 1.1,
+      body: Column(
+        children: [
+          // Header title background should be transparent
+          if (widget.title.isNotEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              color: Colors.transparent,
+              child: Text(
+                widget.title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
             ),
-            itemCount: widget.categories.length,
-            itemBuilder: (context, index) {
-              final category = widget.categories[index];
-              return CategoryCard(
-                categoryName: category.name,
-                productImages: category.productImages,
-                productCount: category.productCount,
-                categoryImageUrl: category.imageUrl,
-                onTap: widget.onCategoryTap != null ? () => widget.onCategoryTap!(category) : null,
-              );
-            },
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: RefreshIndicator(
+                onRefresh: widget.onRefresh ?? () async {},
+                child: GridView.builder(
+                  padding: EdgeInsets.zero,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1.1,
+                  ),
+                  itemCount: widget.categories.length,
+                  itemBuilder: (context, index) {
+                    final category = widget.categories[index];
+                    return CategoryCard(
+                      categoryName: category.name,
+                      productImages: category.productImages,
+                      productCount: category.productCount,
+                      backgroundColor: Colors.white,
+                      categoryImageUrl: category.imageUrl,
+                      onTap: widget.onCategoryTap != null ? () => widget.onCategoryTap!(category) : null,
+                    );
+                  },
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

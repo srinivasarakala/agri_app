@@ -23,7 +23,7 @@ class AppTheme {
       brightness: Brightness.light,
     ),
     primaryColor: primaryColor,
-    scaffoldBackgroundColor: backgroundColor,
+    scaffoldBackgroundColor: backgroundColor,//const Color.fromARGB(255, 240, 239, 239),
     appBarTheme: AppBarTheme(
       backgroundColor: primaryColor,
       foregroundColor: Colors.white,

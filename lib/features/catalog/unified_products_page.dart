@@ -4,6 +4,7 @@ import '../catalog/product.dart';
 import '../catalog/brand.dart';
 import '../catalog/product_details_page.dart';
 import '../../main.dart';
+import '../../core/cart/cart_state.dart';
 
 class UnifiedProductsPage extends StatefulWidget {
   final int? brandId;
@@ -13,6 +14,7 @@ class UnifiedProductsPage extends StatefulWidget {
   final bool showSearchBar;
   final bool showFilterRow;
   final bool showOnlySpareParts;
+  final bool showOnlyFavorites;
 
   const UnifiedProductsPage({
     this.brandId,
@@ -22,6 +24,7 @@ class UnifiedProductsPage extends StatefulWidget {
     this.showSearchBar = false,
     this.showFilterRow = false,
     this.showOnlySpareParts = false,
+    this.showOnlyFavorites = false,
     Key? key,
   }) : super(key: key);
 
@@ -30,30 +33,30 @@ class UnifiedProductsPage extends StatefulWidget {
 }
 
 class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
-      void _loadBrands() async {
-        try {
-          final brandList = await catalogApi.listBrands();
-          setState(() {
-            brandsList = brandList.map((b) => Brand.fromJson(b)).toList();
-          });
-        } catch (_) {}
-      }
-    String filterType = 'Product';
-    List<Brand> brandsList = [];
+    void _toggleFavorite(int productId) {
+      setState(() {
+        toggleFavorite(productId);
+      });
+    }
+  String filterType = 'Product';
+  List<Brand> brandsList = [];
   bool loading = true;
   String? error;
   List<Product> products = [];
   List<Product> filteredProducts = [];
+  List<Product> sparePartsProducts = [];
   final TextEditingController searchCtrl = TextEditingController();
   late bool showSearchBar;
   late bool showFilterRow;
 
   @override
   void initState() {
-      _loadBrands();
     super.initState();
-    showSearchBar = widget.showSearchBar;
-    showFilterRow = widget.showFilterRow;
+      // For favorites, search bar is collapsed by default but can be expanded
+      // For favorites, search bar should be collapsed by default
+      showSearchBar = widget.showOnlyFavorites ? false : widget.showSearchBar;
+      showFilterRow = widget.showFilterRow;
+    _loadBrands();
     _load();
     searchCtrl.addListener(_applyFilters);
   }
@@ -71,17 +74,24 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
     });
     try {
       final all = await catalogApi.listProducts();
-      // Filter products based on showOnlySpareParts flag
-      products = all.where((p) {
-        bool matches = widget.showOnlySpareParts ? p.isSparePart : !p.isSparePart;
-        if (widget.brandName != null) {
-          matches = matches && (p.brand == widget.brandName);
-        }
-        if (widget.categoryId != null) {
-          matches = matches && (p.categoryId == widget.categoryId);
-        }
-        return matches;
-      }).toList();
+      // Filter products based on showOnlySpareParts or showOnlyFavorites flag
+      if (widget.showOnlyFavorites) {
+        final favSet = favorites.value;
+        products = all.where((p) => favSet.contains(p.id)).toList();
+      } else {
+        products = all.where((p) {
+          bool matches = widget.showOnlySpareParts ? p.isSparePart : !p.isSparePart;
+          if (widget.brandName != null) {
+            matches = matches && (p.brand == widget.brandName);
+          }
+          if (widget.categoryId != null) {
+            matches = matches && (p.categoryId == widget.categoryId);
+          }
+          return matches;
+        }).toList();
+      }
+      // Load spare parts separately
+      sparePartsProducts = all.where((p) => p.isSparePart).toList();
       _applyFilters();
     } catch (e) {
       error = "Failed to load products";
@@ -91,14 +101,6 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
   }
 
   void _applyFilters() {
-      void _loadBrands() async {
-        try {
-          final brandList = await catalogApi.listBrands();
-          setState(() {
-            brandsList = brandList.map((b) => Brand.fromJson(b)).toList();
-          });
-        } catch (_) {}
-      }
     final query = searchCtrl.text.toLowerCase();
     setState(() {
       filteredProducts = products.where((p) {
@@ -106,6 +108,15 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
         return matchesSearch;
       }).toList();
     });
+  }
+
+  void _loadBrands() async {
+    try {
+      final brandList = await catalogApi.listBrands();
+      setState(() {
+        brandsList = brandList.map((b) => Brand.fromJson(b)).toList();
+      });
+    } catch (_) {}
   }
 
   @override
@@ -140,7 +151,10 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                   ),
                 )
               : Text(
-                  widget.categoryName ?? widget.brandName ?? 'Products',
+                  widget.showOnlyFavorites
+                      ? 'Favorites'
+                      : widget.categoryName ?? widget.brandName ?? 'Products',
+                  textAlign: TextAlign.center,
                   style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
                 ),
           iconTheme: const IconThemeData(color: Colors.black),
@@ -171,6 +185,7 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                       items: const [
                         DropdownMenuItem(value: 'Product', child: Text('Product')),
                         DropdownMenuItem(value: 'Brand', child: Text('Brand')),
+                        DropdownMenuItem(value: 'Spare Part', child: Text('Spare Part')),
                       ],
                       onChanged: (v) {
                         if (v != null) setState(() => filterType = v);
@@ -206,7 +221,123 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
               ),
             ),
           Expanded(
-            child: filterType == 'Product'
+            child: filterType == 'Spare Part'
+                ? (loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : error != null
+                        ? Center(child: Text(error!))
+                        : sparePartsProducts.isEmpty
+                            ? const Center(child: Text("No spare parts found"))
+                            : GridView.builder(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 12,
+                                  crossAxisSpacing: 12,
+                                  childAspectRatio: 0.78,
+                                ),
+                                itemCount: sparePartsProducts.length,
+                                itemBuilder: (context, i) {
+                                  final p = sparePartsProducts[i];
+                                  return GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => ProductDetailsPage(product: p),
+                                        ),
+                                      );
+                                    },
+                                    child: Card(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      elevation: 0,
+                                      color: Colors.white,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Expanded(
+                                            flex: 3,
+                                            child: Container(
+                                              width: double.infinity,
+                                              decoration: BoxDecoration(
+                                                color: Color(0xFFF5F7FA),
+                                                borderRadius: const BorderRadius.only(
+                                                  topLeft: Radius.circular(16),
+                                                  topRight: Radius.circular(16),
+                                                ),
+                                              ),
+                                              child: ClipRRect(
+                                                borderRadius: const BorderRadius.only(
+                                                  topLeft: Radius.circular(16),
+                                                  topRight: Radius.circular(16),
+                                                ),
+                                                child: p.imageUrl != null && p.imageUrl!.isNotEmpty
+                                                    ? CachedNetworkImage(
+                                                        imageUrl: p.imageUrl!,
+                                                        fit: BoxFit.cover,
+                                                        width: double.infinity,
+                                                        height: double.infinity,
+                                                        errorWidget: (_, __, ___) => const Icon(
+                                                          Icons.image,
+                                                          size: 50,
+                                                          color: Colors.grey,
+                                                        ),
+                                                      )
+                                                    : const Icon(
+                                                        Icons.image,
+                                                        size: 50,
+                                                        color: Colors.grey,
+                                                      ),
+                                              ),
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.all(12),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  p.name,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                    color: Colors.black,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  p.categoryName ?? 'General',
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.grey.shade600,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  '₹ ${p.sellingPrice.toStringAsFixed(2)}',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                    color: Colors.black,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ))
+                : filterType == 'Product'
                 ? (loading
                     ? const Center(child: CircularProgressIndicator())
                     : error != null
@@ -214,7 +345,7 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                         : filteredProducts.isEmpty
                             ? const Center(child: Text("No products found"))
                             : GridView.builder(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
                                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: 2,
                                   mainAxisSpacing: 12,
@@ -237,57 +368,120 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(16),
                                       ),
-                                      elevation: 2,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(10),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            // Product image
-                                            ClipRRect(
-                                              borderRadius: BorderRadius.circular(12),
-                                              child: Container(
-                                                color: Colors.grey.shade100,
-                                                height: 120,
-                                                width: double.infinity,
-                                                child: p.imageUrl != null && p.imageUrl!.isNotEmpty
-                                                    ? CachedNetworkImage(
-                                                        imageUrl: p.imageUrl!,
-                                                        fit: BoxFit.cover,
-                                                      )
-                                                    : const Icon(Icons.image, size: 48, color: Colors.grey),
-                                              ),
+                                      elevation: 0,
+                                      color: Colors.white,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          // Product image with light gray background and favorite icon
+                                          Expanded(
+                                            flex: 3,
+                                            child: Stack(
+                                              children: [
+                                                Container(
+                                                  width: double.infinity,
+                                                  decoration: BoxDecoration(
+                                                    color: Color(0xFFF5F7FA),
+                                                    borderRadius: const BorderRadius.only(
+                                                      topLeft: Radius.circular(16),
+                                                      topRight: Radius.circular(16),
+                                                    ),
+                                                  ),
+                                                  child: ClipRRect(
+                                                    borderRadius: const BorderRadius.only(
+                                                      topLeft: Radius.circular(16),
+                                                      topRight: Radius.circular(16),
+                                                    ),
+                                                    child: p.imageUrl != null && p.imageUrl!.isNotEmpty
+                                                        ? CachedNetworkImage(
+                                                            imageUrl: p.imageUrl!,
+                                                            fit: BoxFit.cover,
+                                                            width: double.infinity,
+                                                            height: double.infinity,
+                                                            errorWidget: (_, __, ___) => const Icon(
+                                                              Icons.image,
+                                                              size: 50,
+                                                              color: Colors.grey,
+                                                            ),
+                                                          )
+                                                        : const Icon(
+                                                            Icons.image,
+                                                            size: 50,
+                                                            color: Colors.grey,
+                                                          ),
+                                                  ),
+                                                ),
+                                                Positioned(
+                                                  top: 8,
+                                                  right: 8,
+                                                  child: GestureDetector(
+                                                    onTap: () {
+                                                      _toggleFavorite(p.id);
+                                                    },
+                                                    child: Icon(
+                                                      favorites.value.contains(p.id)
+                                                          ? Icons.favorite
+                                                          : Icons.favorite_border,
+                                                      color: favorites.value.contains(p.id)
+                                                          ? Colors.red
+                                                          : Colors.grey,
+                                                      size: 28,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                            const SizedBox(height: 10),
-                                            // Product name
-                                            Text(
-                                              p.name,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 15,
-                                              ),
+                                          ),
+                                          // Product details
+                                          Container(
+                                            padding: const EdgeInsets.all(12),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                // Product SKU/Model
+                                                Text(
+                                                  p.name,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                    color: Colors.black,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                // Product name as subtitle
+                                                Text(
+                                                  p.categoryName ?? 'General',
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.grey.shade600,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                // Product price
+                                                Text(
+                                                  '₹ ${p.sellingPrice.toStringAsFixed(2)}',
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                    color: Colors.black,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                            const SizedBox(height: 6),
-                                            // Product price
-                                            Text(
-                                              'Rs. ${p.sellingPrice.toStringAsFixed(2)}',
-                                              style: const TextStyle(
-                                                color: Colors.deepOrange,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   );
                                 },
                               ))
                 : GridView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
                       mainAxisSpacing: 12,

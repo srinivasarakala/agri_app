@@ -22,52 +22,54 @@ class CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2,
+      elevation: 1,
       color: backgroundColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: 160,
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Category Name at top
-              Text(
-                categoryName,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  height: 1.2,
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Image Display - Category image if available, else product collage
+            Expanded(
+              flex: 65,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+                child: Container(
+                  width: double.infinity,
+                  color: const Color(0xFFF5F5F7),
+                  child: categoryImageUrl != null && categoryImageUrl!.isNotEmpty
+                      ? _buildCategoryImage()
+                      : _buildProductCollage(),
                 ),
               ),
-              const SizedBox(height: 4),
-              // Product count
-              Text(
-                '$productCount products',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 8),
-              // Image Display - Category image if available, else product collage
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    width: double.infinity,
-                    color: Colors.grey.shade100,
-                    child: categoryImageUrl != null && categoryImageUrl!.isNotEmpty
-                        ? _buildCategoryImage()
-                        : _buildProductCollage(),
+            ),
+            // Category Name at bottom center
+            Expanded(
+              flex: 35,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                width: double.infinity,
+                alignment: Alignment.center,
+                child: Text(
+                  categoryName,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    height: 1.2,
+                    color: Color(0xFF1C1C1E),
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -80,7 +82,7 @@ class CategoryCard extends StatelessWidget {
       fit: BoxFit.cover,
       errorWidget: (_, __, ___) => const Icon(
         Icons.category,
-        size: 48,
+        size: 64,
         color: Colors.grey,
       ),
     );

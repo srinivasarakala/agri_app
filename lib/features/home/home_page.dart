@@ -2,23 +2,20 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../main.dart';
 import '../../core/cart/cart_state.dart';
-import '../brand/brands_page.dart';
-import '../brand/brand_products_page.dart';
 import '../brand/brands_carousel.dart';
 import '../catalog/brand.dart';
 import '../catalog/product.dart';
 import '../catalog/category.dart';
 import '../catalog/product_video.dart';
-import '../catalog/product_details_page.dart';
-import '../catalog/widgets/featured_products_carousel.dart';
 import '../catalog/widgets/categories_carousel.dart';
-import '../catalog/widgets/spare_parts_carousel.dart';
 import '../catalog/widgets/product_videos_carousel.dart';
 import '../catalog/unified_products_page.dart';
 import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 import 'widgets/top_products_carousel.dart';
 import '../shell/app_shell.dart'; // for appTabIndex
+import '../profile/profile_page.dart';
+import '../profile/user_profile.dart';
 
 class HomePage extends StatefulWidget {
   final String role; // "Admin" or "Dealer"
@@ -232,143 +229,278 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<void> _showProfileInfo(BuildContext context) async {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.5,
+        minChildSize: 0.3,
+        maxChildSize: 0.8,
+        expand: false,
+        builder: (context, scrollController) => FutureBuilder<UserProfile>(
+          future: profileApi.getProfile(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text('Error loading profile',
+                        style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              );
+            }
+            final profile = snapshot.data!;
+            return ListView(
+              controller: scrollController,
+              padding: const EdgeInsets.all(24),
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Profile Information',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    IconButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ProfilePage(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.edit),
+                      tooltip: 'Edit Profile',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _ProfileInfoTile(
+                  icon: Icons.person,
+                  label: 'Name',
+                  value: profile.fullName.isNotEmpty
+                      ? profile.fullName
+                      : 'Not set',
+                ),
+                const SizedBox(height: 16),
+                _ProfileInfoTile(
+                  icon: Icons.phone,
+                  label: 'Phone',
+                  value: profile.phone,
+                ),
+                const SizedBox(height: 16),
+                _ProfileInfoTile(
+                  icon: Icons.badge,
+                  label: 'Role',
+                  value: profile.role,
+                ),
+                const SizedBox(height: 24),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   @override
 Widget build(BuildContext context) {
   return RefreshIndicator(
     onRefresh: _refreshAll,
-    child: ListView(
-      padding: EdgeInsets.zero,
-      children: [
+    child: CustomScrollView(
+      slivers: [
+        // Sticky Top Banner
+        SliverAppBar(
+          pinned: true,
+          floating: false,
+          backgroundColor: AppTheme.backgroundColor,
+          elevation: 0,
+          toolbarHeight: 60, // Height for banner only
+          automaticallyImplyLeading: false,
+          flexibleSpace: SafeArea(
+            child: Container(
+              color: AppTheme.backgroundColor,
+              child: Stack(
+                children: [
+                  Container(
+                    height: 60,
+                    alignment: Alignment.center,
+                    child: FractionallySizedBox(
+                      widthFactor: 0.5,
+                      child: Image.asset(
+                      'assets/images/top_banner.png',
+                      height: 60,
+                      fit: BoxFit.contain,
+                      alignment: Alignment.center,
+                    ),
+                  ),
+                  ),
+                  Positioned(
+                    right: 16,
+                    top: 4,
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(16),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => _showProfileInfo(context),
+                        child: Container(
+                          height: 52,
+                          width: 52,
+                          alignment: Alignment.center,
+                          child: const Icon(
+                            Icons.account_circle,
+                            size: 32,
+                            color: Color(0xFF2E7D32),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
 
-        /// 🔎 Search Bar
-        Container(
-          color: AppTheme.backgroundColor,
-          padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
-          child: _SearchPill(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => UnifiedProductsPage(
-                    showSearchBar: true,
-                    showFilterRow: true,
+        // Scrollable Content
+        SliverToBoxAdapter(
+          child: Column(
+            children: [
+              /// 🔎 Search Bar
+              Container(
+                color: AppTheme.backgroundColor,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                child: _SearchPill(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => UnifiedProductsPage(
+                          showSearchBar: true,
+                          showFilterRow: true,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              /// 🏷 Shop by Brands
+              BrandsCarousel(
+                brands: brands,
+                isLoading: brandsLoading,
+                error: brandsError,
+                onBrandTap: (brand) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => UnifiedProductsPage(
+                        brandId: brand.id,
+                        brandName: brand.name,
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 20),
+
+              /// 🗂 Shop by Category
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Shop by Category",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
                   ),
                 ),
-              );
-            },
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        /// 🏷 Shop by Brands
-        BrandsCarousel(
-          brands: brands,
-          isLoading: brandsLoading,
-          error: brandsError,
-          onBrandTap: (brand) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => UnifiedProductsPage(
-                  brandId: brand.id,
-                  brandName: brand.name,
-                ),
               ),
-            );
-          },
-        ),
 
-        const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-        /// 🗂 Shop by Category
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          child: const Text(
-            "Shop by Category",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        CategoriesCarousel(
-          categories: categories,
-          isLoading: categoriesLoading,
-          error: categoriesError,
-          onCategoryTap: (category) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => UnifiedProductsPage(
-                  categoryId: category.id,
-                  categoryName: category.name,
-                ),
+              CategoriesCarousel(
+                categories: categories,
+                isLoading: categoriesLoading,
+                error: categoriesError,
+                onCategoryTap: (category) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => UnifiedProductsPage(
+                        categoryId: category.id,
+                        categoryName: category.name,
+                      ),
+                    ),
+                  );
+                },
               ),
-            );
-          },
-        ),
 
-        const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-        /// � Shop Spare Parts
-        if (sparePartsCategoriesLoading || sparePartsCategoriesError != null || sparePartsCategories.isNotEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Row(
-              children: [
-                const Icon(Icons.build, size: 20, color: Colors.grey),
-                const SizedBox(width: 8),
-                const Text(
-                  "Shop by Spare Parts",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+              /// 🔥 Top Products
+              TopProductsCarousel(key: ValueKey(_topProductsKey)),
+
+              const SizedBox(height: 20),
+
+              /// 🎥 Product Videos
+              if (videosLoading || videosError != null || videos.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      "Product Videos",
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 12),
+                ProductVideosCarousel(
+                  videos: videos,
+                  isLoading: videosLoading,
+                  error: videosError,
+                ),
+                const SizedBox(height: 20),
               ],
-            ),
+            ],
           ),
-          const SizedBox(height: 12),
-          SparePartsCarousel(
-            categories: sparePartsCategories,
-            isLoading: sparePartsCategoriesLoading,
-            error: sparePartsCategoriesError,
-            onCategoryTap: (category) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => UnifiedProductsPage(
-                    categoryId: category.id,
-                    categoryName: category.name,
-                    showOnlySpareParts: true,
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-        ],
-
-        /// �🔥 Top Products
-        TopProductsCarousel(key: ValueKey(_topProductsKey)),
-
-        const SizedBox(height: 24),
-
-        /// 🎥 Product Videos
-        if (videosLoading || videosError != null || videos.isNotEmpty) ...[
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: const Text(
-              "Product Videos",
-              style:
-                  TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-            ),
-          ),
-          const SizedBox(height: 16),
-          ProductVideosCarousel(
-            videos: videos,
-            isLoading: videosLoading,
-            error: videosError,
-          ),
-          const SizedBox(height: 24),
-        ],
+        ),
       ],
     ),
   );
@@ -416,6 +548,71 @@ class _SearchPill extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ProfileInfoTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _ProfileInfoTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2E7D32).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: const Color(0xFF2E7D32),
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

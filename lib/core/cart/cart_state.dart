@@ -61,22 +61,37 @@ Future<void> loadUserCart(String phone) async {
       }
     }
 
-    // Load favorites from backend first, fallback to local storage
+    // Load favorites from backend, but only overwrite if not empty; fallback to local storage otherwise
     try {
       final backendFavorites = await catalogApi.getFavorites();
-      favorites.value = backendFavorites.toSet();
-
-      // Save to local storage for offline access
-      if (_prefs != null) {
-        await _prefs!.setString('favs_$phone', json.encode(backendFavorites));
+      if (backendFavorites.isNotEmpty) {
+        favorites.value = backendFavorites.toSet();
+        // Save to local storage for offline access
+        if (_prefs != null) {
+          await _prefs!.setString('favs_$phone', json.encode(backendFavorites));
+        }
+      } else {
+        // Fallback to local storage
+        if (_prefs == null) {
+          await initCartStorage();
+        }
+        if (_prefs != null) {
+          final favsJson = _prefs!.getString('favs_$phone');
+          if (favsJson != null) {
+            final List<dynamic> decoded = json.decode(favsJson);
+            favorites.value = decoded.cast<int>().toSet();
+          } else {
+            favorites.value = {};
+          }
+        } else {
+          favorites.value = {};
+        }
       }
     } catch (e) {
-
       // Fallback to local storage
       if (_prefs == null) {
         await initCartStorage();
       }
-
       if (_prefs != null) {
         final favsJson = _prefs!.getString('favs_$phone');
         if (favsJson != null) {
@@ -216,6 +231,15 @@ void clearUserSession() {
   favorites.value = const {};
 }
 
+// Sync all favorites to backend
+Future<void> syncFavorites() async {
+  try {
+    await catalogApi.setFavorites(favorites.value.toList());
+  } catch (e) {
+    // Optionally handle error
+  }
+}
+
 void toggleFavorite(int productId) {
   final fav = Set<int>.from(favorites.value);
   if (fav.contains(productId)) {
@@ -225,6 +249,7 @@ void toggleFavorite(int productId) {
   }
   favorites.value = fav;
   _saveFavorites();
+  syncFavorites();
 }
 
 bool isFavorite(int productId) {

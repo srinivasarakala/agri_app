@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:pavan_agro/core/theme/app_theme.dart';
+import 'package:pavan_agro/features/catalog/unified_products_page.dart';
 import '../../core/cart/cart_state.dart';
 import '../admin/pages/admin_products_page.dart';
 import '../admin/pages/admin_spare_parts_page.dart';
 import '../admin/pages/admin_brands_page.dart';
 import '../admin/pages/admin_product_videos_page.dart';
 import '../admin/pages/admin_categories_page.dart';
-import '../admin/pages/admin_brands_page.dart';
 import '../admin/pages/admin_orders_page.dart';
 import '../admin/pages/admin_stock_history_page.dart';
 import '../admin/pages/admin_ledger_page.dart';
@@ -80,23 +81,59 @@ class MenuPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final isAdmin = role == "Admin";
 
-    return ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 48, 16, 16),
-          color: Colors.white,
-          child: const Text(
-            "Menu",
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
+    return CustomScrollView(
+      slivers: [
+        // Sticky Top Banner with Title
+        SliverAppBar(
+          pinned: true,
+          floating: false,
+          backgroundColor: AppTheme.backgroundColor,
+          elevation: 0,
+          toolbarHeight: 100, // Adjusted height for banner (55) + title (45)
+          automaticallyImplyLeading: false,
+          flexibleSpace: SafeArea(
+            child: Container(
+              color: AppTheme.backgroundColor,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    height: 55,
+                    alignment: Alignment.center,
+                    child: FractionallySizedBox(
+                      widthFactor: 0.5,
+                      child: Image.asset(
+                        'assets/images/top_banner.png',
+                        height: 55,
+                        fit: BoxFit.contain,
+                        alignment: Alignment.center,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    height: 45,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: const Text(
+                      "Menu",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
 
-        // ── Account info ───────────────────────────────────────────────────
+        // Scrollable Menu Content
+        SliverList(
+          delegate: SliverChildListDelegate([
+            // ── Account info ───────────────────────────────────────────────────
         _collapsibleGroup(
           title: "Account",
           icon: Icons.person,
@@ -117,6 +154,23 @@ class MenuPage extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const ProfilePage()),
               ),
             ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.favorite),
+                title: const Text("Favorites"),
+                subtitle: const Text("View your favorite products"),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => UnifiedProductsPage(
+                      showOnlyFavorites: true,
+                      showSearchBar: true,
+                      showFilterRow: false,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
 
@@ -134,6 +188,18 @@ class MenuPage extends StatelessWidget {
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AdminBrandsPage()),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.category),
+                title: const Text("Manage Categories"),
+                subtitle: const Text("Add, edit, or delete categories and images"),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const AdminCategoriesPage()),
                 ),
               ),
               const Divider(height: 1),
@@ -158,28 +224,6 @@ class MenuPage extends StatelessWidget {
               ),
               const Divider(height: 1),
               ListTile(
-                leading: const Icon(Icons.video_library),
-                title: const Text("Product Videos"),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const AdminProductVideosPage()),
-                ),
-              ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.category),
-                title: const Text("Categories"),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const AdminCategoriesPage()),
-                ),
-              ),
-              const Divider(height: 1),
-              ListTile(
                 leading: const Icon(Icons.star),
                 title: const Text("Top Products"),
                 subtitle: const Text("Manage home page featured products"),
@@ -188,6 +232,18 @@ class MenuPage extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                       builder: (_) => const AdminTopProductsPage()),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.video_library),
+                title: const Text("Product Videos"),
+                subtitle: const Text("Manage home page featured product videos"),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const AdminProductVideosPage()),
                 ),
               ),
             ],
@@ -330,6 +386,8 @@ class MenuPage extends StatelessWidget {
         ),
 
         const SizedBox(height: 20),
+          ]),
+        ),
       ],
     );
   }

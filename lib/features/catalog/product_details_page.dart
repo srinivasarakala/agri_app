@@ -21,6 +21,7 @@ class ProductDetailsPage extends StatefulWidget {
 class _ProductDetailsPageState extends State<ProductDetailsPage> {
   late int currentQty;
   bool isFavorite = false;
+  bool favoriteLoading = false;
 
   @override
   void initState() {
@@ -86,12 +87,16 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   }
 
   Future<void> _toggleFavorite() async {
+    if (favoriteLoading) return;
+    setState(() { favoriteLoading = true; });
+    final prevFavorite = isFavorite;
+    final prevFavorites = Set<int>.from(favorites.value);
+    // Optimistic update
+    setState(() { isFavorite = !isFavorite; });
+    toggleFavorite(widget.product.id);
     try {
       await catalogApi.toggleFavorite(widget.product.id);
-      setState(() {
-        isFavorite = !isFavorite;
-      });
-      toggleFavorite(widget.product.id);
+      await syncFavorites(); // Ensure backend sync
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -102,10 +107,18 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
         ),
       );
     } catch (e) {
+      // Revert UI and local state
+      setState(() { isFavorite = prevFavorite; });
+      favorites.value = prevFavorites;
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to update favorite. Please try again."),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() { favoriteLoading = false; });
     }
   }
 
@@ -152,11 +165,17 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                     onPressed: _shareProduct,
                   ),
                   IconButton(
-                    icon: Icon(
-                      isFavorite ? Icons.favorite : Icons.favorite_outline,
-                      color: isFavorite ? Colors.red : null,
-                    ),
-                    onPressed: _toggleFavorite,
+                    icon: favoriteLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_outline,
+                            color: isFavorite ? Colors.red : null,
+                          ),
+                    onPressed: favoriteLoading ? null : _toggleFavorite,
                   ),
                 ],
               ),

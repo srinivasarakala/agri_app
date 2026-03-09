@@ -132,26 +132,92 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
                                     );
                                   },
                                   child: Card(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    elevation: 0,
+                                    color: Colors.white,
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
+                                        // Product image with light gray background
                                         Expanded(
-                                          child: product.imageUrl != null && product.imageUrl!.isNotEmpty
-                                              ? CachedNetworkImage(imageUrl: product.imageUrl!, fit: BoxFit.cover)
-                                              : const Icon(Icons.shopping_bag, size: 60),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Text(
-                                            product.name,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(fontWeight: FontWeight.bold),
+                                          flex: 3,
+                                          child: Container(
+                                            width: double.infinity,
+                                            decoration: BoxDecoration(
+                                              color: Color(0xFFF5F7FA),
+                                              borderRadius: const BorderRadius.only(
+                                                topLeft: Radius.circular(16),
+                                                topRight: Radius.circular(16),
+                                              ),
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius: const BorderRadius.only(
+                                                topLeft: Radius.circular(16),
+                                                topRight: Radius.circular(16),
+                                              ),
+                                              child: product.imageUrl != null && product.imageUrl!.isNotEmpty
+                                                  ? CachedNetworkImage(
+                                                      imageUrl: product.imageUrl!,
+                                                      fit: BoxFit.cover,
+                                                      width: double.infinity,
+                                                      height: double.infinity,
+                                                      errorWidget: (_, __, ___) => const Icon(
+                                                        Icons.image,
+                                                        size: 50,
+                                                        color: Colors.grey,
+                                                      ),
+                                                    )
+                                                  : const Icon(
+                                                      Icons.image,
+                                                      size: 50,
+                                                      color: Colors.grey,
+                                                    ),
+                                            ),
                                           ),
                                         ),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                          child: Text('₹${product.sellingPrice.toStringAsFixed(2)}'),
+                                        // Product details
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              // Product SKU/Model
+                                              Text(
+                                                product.name,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              // Product name as subtitle
+                                              Text(
+                                                product.categoryName ?? 'General',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.grey.shade600,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              // Product price
+                                              Text(
+                                                '₹ ${product.sellingPrice.toStringAsFixed(2)}',
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16,
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       ],
                                     ),

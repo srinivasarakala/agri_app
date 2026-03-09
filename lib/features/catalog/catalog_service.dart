@@ -3,40 +3,42 @@ import 'product.dart';
 import 'category.dart';
 import 'product_video.dart';
 import 'brand.dart';
-import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';  
+  
+ class CatalogService {
 
-class CatalogService {
-
-        Future<Brand> adminUploadBrandImage(int brandId, String filePath) async {
-          final form = FormData.fromMap({
-            'image': await MultipartFile.fromFile(filePath),
-          });
-          final res = await client.dio.post(
-            '/api/admin/brands/$brandId/image',
-            data: form,
-          );
-          return Brand.fromJson(res.data as Map<String, dynamic>);
-        }
-      Future<Brand> adminCreateBrand(Map<String, dynamic> payload) async {
-        final res = await client.dio.post('/api/admin/brands', data: payload);
-        return Brand.fromJson(res.data as Map<String, dynamic>);
-      }
-
-      Future<Brand> adminUpdateBrand(int brandId, Map<String, dynamic> payload) async {
-        final res = await client.dio.put('/api/admin/brands/$brandId', data: payload);
-        return Brand.fromJson(res.data as Map<String, dynamic>);
-      }
-
-      Future<void> adminDeleteBrand(int brandId) async {
-        await client.dio.delete('/api/admin/brands/$brandId');
-      }
-    Future<List<Map<String, dynamic>>> listBrands() async {
-      final res = await client.dio.get('/api/brands/');
-      final list = (res.data as List).cast<Map<String, dynamic>>();
-      return list;
-    }
   final DioClient client;
   CatalogService(this.client);
+
+  Future<Brand> adminUploadBrandImage(int brandId, String filePath) async {
+    final form = FormData.fromMap({
+      'image': await MultipartFile.fromFile(filePath),
+    });
+    final res = await client.dio.post(
+      '/api/admin/brands/$brandId/image',
+      data: form,
+    );
+    return Brand.fromJson(res.data as Map<String, dynamic>);
+  }
+  Future<Brand> adminCreateBrand(Map<String, dynamic> payload) async {
+    final res = await client.dio.post('/api/admin/brands', data: payload);
+    return Brand.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  Future<Brand> adminUpdateBrand(int brandId, Map<String, dynamic> payload) async {
+    final res = await client.dio.put('/api/admin/brands/$brandId', data: payload);
+    return Brand.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  Future<void> adminDeleteBrand(int brandId) async {
+    await client.dio.delete('/api/admin/brands/$brandId');
+  }
+  Future<List<Map<String, dynamic>>> listBrands() async {
+    final res = await client.dio.get('/api/brands/');
+    final list = (res.data as List).cast<Map<String, dynamic>>();
+    return list;
+  }
+  
 
   Future<Product> adminUploadProductImage(int productId, String filePath) async {
     final form = FormData.fromMap({
@@ -123,6 +125,20 @@ class CatalogService {
     });
   }
 
+   //Set all favorite product IDs for the user
+  Future<void> setFavorites(List<int> productIds) async {
+    try {
+      await client.dio.post(
+        '/favorites',
+        data: {
+          'favorite_product_ids': productIds,
+        },
+      );
+    } catch (e) {
+      throw Exception('Failed to set favorites: $e');
+    }
+  }
+
   // Favorites API
   Future<List<int>> getFavorites() async {
     try {
@@ -131,6 +147,7 @@ class CatalogService {
       final ids = (data['favorite_product_ids'] as List?)?.cast<int>() ?? [];
       return ids;
     } catch (e) {
+      // Removed misplaced imports
       return [];
     }
   }

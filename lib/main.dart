@@ -88,6 +88,11 @@ void main() async {
   dealerWhitelistApi = DealerWhitelistService(client);
   ordersApi = OrdersService(client);
 
+  // Restore cart and favorites for logged-in user
+  final phone = currentSession?.phone;
+  if (phone != null) {
+    await loadUserCart(phone);
+  }
   runApp(const AgriApp());
 }
 
