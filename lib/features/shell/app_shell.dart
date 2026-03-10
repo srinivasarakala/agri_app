@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../core/widgets/progressive_image.dart';
 import 'package:pavan_agro/core/theme/app_theme.dart';
 import 'package:pavan_agro/features/profile/profile_page.dart';
 import 'package:pavan_agro/features/profile/user_profile.dart';
@@ -442,15 +443,12 @@ class _CartPageState extends State<_CartPage> {
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
                                         child: p.imageUrl != null && p.imageUrl!.isNotEmpty
-                                            ? CachedNetworkImage(
+                                            ? ProgressiveImage(
                                                 imageUrl: p.imageUrl!,
+                                                width: 80,
+                                                height: 80,
                                                 fit: BoxFit.cover,
-                                                errorWidget:
-                                                    (_, __, ___) => const Icon(
-                                                  Icons.image,
-                                                  size: 40,
-                                                  color: Colors.grey,
-                                                ),
+                                                borderRadius: BorderRadius.circular(8),
                                               )
                                             : const Icon(
                                                 Icons.image,

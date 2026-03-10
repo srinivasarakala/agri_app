@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:pavan_agro/core/widgets/progressive_image.dart';
 import '../product_video.dart';
 
 class ProductVideosCarousel extends StatefulWidget {
@@ -204,21 +205,12 @@ class _VideoCard extends StatelessWidget {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: CachedNetworkImage(
-                        imageUrl: video.thumbnailUrl,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => Container(
-                          color: Colors.grey.shade200,
-                          child: const Center(
-                            child: Icon(
-                              Icons.play_circle_outline,
-                              size: 48,
-                             // color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                      ),
+                      child: ProgressiveImage(
+                      imageUrl: video.thumbnailUrl,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     ),
                     // Play button overlay
                     Positioned.fill(

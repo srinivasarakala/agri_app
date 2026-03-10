@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../catalog/brand.dart';
+import '../../core/widgets/progressive_image.dart';
 
 class BrandsCarousel extends StatefulWidget {
   final List<Brand> brands;
@@ -137,10 +138,27 @@ class _BrandsCarouselState extends State<BrandsCarousel> {
               onTap: () => widget.onBrandTap?.call(brand),
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 36,
-                    backgroundImage: brand.imageUrl != null ? NetworkImage(brand.imageUrl!) : null,
-                    child: brand.imageUrl == null ? Text(brand.name[0]) : null,
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.grey.shade100,
+                    ),
+                    child: brand.imageUrl != null && brand.imageUrl!.isNotEmpty
+                        ? ProgressiveImage(
+                            imageUrl: brand.imageUrl!,
+                            width: 72,
+                            height: 72,
+                            fit: BoxFit.cover,
+                            borderRadius: BorderRadius.circular(36),
+                          )
+                        : Center(
+                            child: Text(
+                              brand.name.isNotEmpty ? brand.name[0] : '',
+                              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.grey),
+                            ),
+                          ),
                   ),
                   const SizedBox(height: 8),
                   SizedBox(

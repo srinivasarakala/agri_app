@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../core/widgets/progressive_image.dart';
 import '../catalog/product.dart';
 import '../catalog/product_details_page.dart';
 import '../../main.dart';
@@ -158,15 +159,14 @@ class _CategoryProductsPageState extends State<CategoryProductsPage> {
                                                 topRight: Radius.circular(16),
                                               ),
                                               child: product.imageUrl != null && product.imageUrl!.isNotEmpty
-                                                  ? CachedNetworkImage(
+                                                  ? ProgressiveImage(
                                                       imageUrl: product.imageUrl!,
-                                                      fit: BoxFit.cover,
                                                       width: double.infinity,
                                                       height: double.infinity,
-                                                      errorWidget: (_, __, ___) => const Icon(
-                                                        Icons.image,
-                                                        size: 50,
-                                                        color: Colors.grey,
+                                                      fit: BoxFit.cover,
+                                                      borderRadius: const BorderRadius.only(
+                                                        topLeft: Radius.circular(16),
+                                                        topRight: Radius.circular(16),
                                                       ),
                                                     )
                                                   : const Icon(

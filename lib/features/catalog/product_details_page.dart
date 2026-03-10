@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../core/widgets/progressive_image.dart';
 import 'product.dart';
 import '../../main.dart';
 import '../../services/analytics_service.dart';
@@ -186,21 +187,13 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
               width: double.infinity,
               height: 350,
               color: Colors.grey.shade100,
-              child:
-                  (widget.product.imageUrl != null &&
-                      widget.product.imageUrl!.isNotEmpty)
-                  ? CachedNetworkImage(
+              child: (widget.product.imageUrl != null && widget.product.imageUrl!.isNotEmpty)
+                  ? ProgressiveImage(
                       imageUrl: widget.product.imageUrl!,
+                      width: double.infinity,
+                      height: 350,
                       fit: BoxFit.contain,
-                      errorWidget: (context, error, stackTrace) {
-                        return const Center(
-                          child: Icon(
-                            Icons.image_not_supported,
-                            size: 80,
-                            color: Colors.grey,
-                          ),
-                        );
-                      },
+                      borderRadius: BorderRadius.circular(0),
                     )
                   : const Center(
                       child: Icon(Icons.image, size: 80, color: Colors.grey),

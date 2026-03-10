@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../core/widgets/progressive_image.dart';
 import '../catalog/product.dart';
 import '../catalog/brand.dart';
 import '../catalog/product_details_page.dart';
@@ -274,15 +275,14 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                                   topRight: Radius.circular(16),
                                                 ),
                                                 child: p.imageUrl != null && p.imageUrl!.isNotEmpty
-                                                    ? CachedNetworkImage(
+                                                    ? ProgressiveImage(
                                                         imageUrl: p.imageUrl!,
-                                                        fit: BoxFit.fill,
                                                         width: double.infinity,
                                                         height: double.infinity,
-                                                        errorWidget: (_, __, ___) => const Icon(
-                                                          Icons.image,
-                                                          size: 50,
-                                                          color: Colors.grey,
+                                                        fit: BoxFit.fill,
+                                                        borderRadius: const BorderRadius.only(
+                                                          topLeft: Radius.circular(16),
+                                                          topRight: Radius.circular(16),
                                                         ),
                                                       )
                                                     : const Icon(
@@ -393,15 +393,14 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                                       topRight: Radius.circular(16),
                                                     ),
                                                     child: p.imageUrl != null && p.imageUrl!.isNotEmpty
-                                                        ? CachedNetworkImage(
+                                                        ? ProgressiveImage(
                                                             imageUrl: p.imageUrl!,
-                                                            fit: BoxFit.fill,
                                                             width: double.infinity,
                                                             height: double.infinity,
-                                                            errorWidget: (_, __, ___) => const Icon(
-                                                              Icons.image,
-                                                              size: 50,
-                                                              color: Colors.grey,
+                                                            fit: BoxFit.fill,
+                                                            borderRadius: const BorderRadius.only(
+                                                              topLeft: Radius.circular(16),
+                                                              topRight: Radius.circular(16),
                                                             ),
                                                           )
                                                         : const Icon(
@@ -522,9 +521,12 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                     height: 80,
                                     width: double.infinity,
                                     child: b.imageUrl != null && b.imageUrl!.isNotEmpty
-                                        ? CachedNetworkImage(
+                                        ? ProgressiveImage(
                                             imageUrl: b.imageUrl!,
+                                            width: double.infinity,
+                                            height: 80,
                                             fit: BoxFit.fill,
+                                            borderRadius: BorderRadius.circular(12),
                                           )
                                         : const Icon(Icons.image, size: 48, color: Colors.grey),
                                   ),

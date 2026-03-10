@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:pavan_agro/core/widgets/progressive_image.dart';
 import '../product.dart';
 import '../../../core/cart/cart_state.dart';
 
@@ -35,24 +36,13 @@ class _ProductDetailDialogState extends State<ProductDetailDialog> {
           children: [
             // Product Image
             if (product.imageUrl != null && product.imageUrl!.isNotEmpty)
-              ClipRRect(
+              ProgressiveImage(
+                imageUrl: product.imageUrl!,
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(16),
-                ),
-                child: CachedNetworkImage(
-                  imageUrl: product.imageUrl!,
-                  height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) => Container(
-                    height: 200,
-                    color: Colors.grey.shade200,
-                    child: const Icon(
-                      Icons.image,
-                      size: 60,
-                      color: Colors.grey,
-                    ),
-                  ),
                 ),
               )
             else

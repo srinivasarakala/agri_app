@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:pavan_agro/core/widgets/progressive_image.dart';
 import '../product.dart';
 
 class ProductCard extends StatelessWidget {
@@ -45,17 +46,16 @@ class ProductCard extends StatelessWidget {
                     topRight: Radius.circular(16),
                   ),
                   child: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
-                      ? CachedNetworkImage(
-                          imageUrl: p.imageUrl!,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: double.infinity,
-                          errorWidget: (_, __, ___) => const Icon(
-                            Icons.image,
-                            size: 50,
-                            color: Colors.grey,
-                          ),
-                        )
+                      ? ProgressiveImage(
+                            imageUrl: p.imageUrl!,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.cover,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              topRight: Radius.circular(16),
+                            ),
+                          )
                       : const Icon(
                           Icons.image,
                           size: 50,

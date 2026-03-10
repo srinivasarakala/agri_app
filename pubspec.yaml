@@ -24,9 +24,10 @@ dependencies:
   android_id: ^0.5.1
   youtube_player_flutter: ^9.1.3
   flutter_inappwebview: ^6.1.5
-  share_plus: ^10.0.0
+  share_plus: ^10.0.0flutt
   path_provider: ^2.1.0
   cached_network_image: ^3.4.0
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:

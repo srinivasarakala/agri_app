@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../../core/widgets/progressive_image.dart';
 
 class CategoryCard extends StatelessWidget {
   final String categoryName;
@@ -75,13 +76,14 @@ class CategoryCard extends StatelessWidget {
 
   // Display single category image
   Widget _buildCategoryImage() {
-    return CachedNetworkImage(
+    return ProgressiveImage(
       imageUrl: categoryImageUrl!,
+      width: double.infinity,
+      height: double.infinity,
       fit: BoxFit.fill,
-      errorWidget: (_, __, ___) => const Icon(
-        Icons.category,
-        size: 64,
-        color: Colors.grey,
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(8),
+        topRight: Radius.circular(8),
       ),
     );
   }
@@ -103,14 +105,12 @@ class CategoryCard extends StatelessWidget {
         return Container(
           color: Colors.grey.shade200,
           child: hasImage
-              ? CachedNetworkImage(
+              ? ProgressiveImage(
                   imageUrl: productImages[index],
+                  width: double.infinity,
+                  height: double.infinity,
                   fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) => const Icon(
-                    Icons.category,
-                    size: 24,
-                    color: Colors.grey,
-                  ),
+                  borderRadius: BorderRadius.circular(0),
                 )
               : Icon(
                   Icons.image_outlined,
