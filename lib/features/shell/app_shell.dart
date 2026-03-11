@@ -447,7 +447,7 @@ class _CartPageState extends State<_CartPage> {
                                                 imageUrl: p.imageUrl!,
                                                 width: 80,
                                                 height: 80,
-                                                fit: BoxFit.cover,
+                                                fit: BoxFit.fill,
                                                 borderRadius: BorderRadius.circular(8),
                                               )
                                             : const Icon(

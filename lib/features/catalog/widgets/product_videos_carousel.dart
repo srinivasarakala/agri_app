@@ -95,30 +95,6 @@ class _ProductVideosCarouselState extends State<ProductVideosCarousel> {
       return const SizedBox.shrink();
     }
 
-    // For fewer than 3 videos, show larger thumbnails
-    if (widget.videos.length < 3) {
-      return SizedBox(
-        height: 280,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          itemCount: widget.videos.length,
-          itemBuilder: (context, index) {
-            return SizedBox(
-              width: MediaQuery.of(context).size.width * 0.85, // Larger width for fewer videos
-              child: Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: _VideoCard(
-                  video: widget.videos[index],
-                  onTap: () => _showEmbeddedVideo(context, widget.videos[index].youtubeUrl),
-                ),
-              ),
-            );
-          },
-        ),
-      );
-    }
-
     // Calculate the number of columns needed (2 videos per column, so we need ceil(videos.length / 2) columns)
     final columnCount = (widget.videos.length / 2).ceil();
 
@@ -190,7 +166,7 @@ class _VideoCard extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 //Fix below issue
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.white,
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -204,20 +180,29 @@ class _VideoCard extends StatelessWidget {
                 child: Stack(
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        topRight: Radius.circular(12),
+                        bottomLeft: Radius.circular(0),
+                        bottomRight: Radius.circular(0),
+                      ),
                       child: ProgressiveImage(
-                      imageUrl: video.thumbnailUrl,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                        imageUrl: video.thumbnailUrl,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                     // Play button overlay
                     Positioned.fill(
                       child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(12),
+                        decoration: const BoxDecoration(
+                          color: Color.fromRGBO(0, 0, 0, 0.3),
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
+                            bottomLeft: Radius.circular(0),
+                            bottomRight: Radius.circular(0),
+                          ),
                         ),
                         child: const Center(
                           child: Icon(
@@ -232,13 +217,17 @@ class _VideoCard extends StatelessWidget {
                 ),
               ),
               // Video title and description at the bottom
+              // background color of title area should be white
+
               Padding(
                 padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      video.title,
+                child: Container(
+                  color: Colors.white,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        video.title,
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -260,6 +249,7 @@ class _VideoCard extends StatelessWidget {
                       ),
                     ],
                   ],
+                  ),
                 ),
               ),
             ],

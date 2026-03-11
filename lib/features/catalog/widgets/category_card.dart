@@ -25,20 +25,20 @@ class CategoryCard extends StatelessWidget {
     return Card(
       elevation: 1,
       color: backgroundColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Image Display - Category image if available, else product collage
             Expanded(
-              flex: 55,
+              flex: 65,
               child: ClipRRect(
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(8),
-                  topRight: Radius.circular(8),
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
                 ),
                 child: Container(
                   width: double.infinity,
@@ -49,7 +49,7 @@ class CategoryCard extends StatelessWidget {
             ),
             // Category Name at bottom center
             Expanded(
-              flex: 45,
+              flex: 35,
               child: Container(
                 padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
                 width: double.infinity,
@@ -80,45 +80,13 @@ class CategoryCard extends StatelessWidget {
       imageUrl: categoryImageUrl!,
       width: double.infinity,
       height: double.infinity,
-      fit: BoxFit.fill,
+      fit: BoxFit.cover,
       borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(8),
-        topRight: Radius.circular(8),
+        topLeft: Radius.circular(20),
+        topRight: Radius.circular(20),
       ),
     );
   }
 
-  // Display 2x2 product collage
-  Widget _buildProductCollage() {
-    return GridView.builder(
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 2,
-        mainAxisSpacing: 2,
-      ),
-      itemCount: 4,
-      itemBuilder: (context, index) {
-        final hasImage =
-            index < productImages.length &&
-            productImages[index].isNotEmpty;
-        return Container(
-          color: Colors.grey.shade200,
-          child: hasImage
-              ? ProgressiveImage(
-                  imageUrl: productImages[index],
-                  width: double.infinity,
-                  height: double.infinity,
-                  fit: BoxFit.cover,
-                  borderRadius: BorderRadius.circular(0),
-                )
-              : Icon(
-                  Icons.image_outlined,
-                  size: 28,
-                  color: Colors.grey.shade400,
-                ),
-        );
-      },
-    );
-  }
+  
 }

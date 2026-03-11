@@ -235,7 +235,7 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                   crossAxisCount: 2,
                                   mainAxisSpacing: 12,
                                   crossAxisSpacing: 12,
-                                  childAspectRatio: 0.70,
+                                  childAspectRatio: 0.78,
                                 ),
                                 itemCount: sparePartsProducts.length,
                                 itemBuilder: (context, i) {
