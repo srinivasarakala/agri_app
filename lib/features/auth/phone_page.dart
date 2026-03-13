@@ -9,6 +9,7 @@ import '../shell/app_shell.dart'; // for appTabIndex
 import 'firebase_phone_auth_service.dart';
 import 'otp_page.dart';
 import 'set_password_page.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 class PhonePage extends StatefulWidget {
   const PhonePage({super.key});
@@ -230,6 +231,21 @@ class _PhonePageState extends State<PhonePage> {
         subdealerId: subdealerId,
         phone: phone,
       );
+
+      // Send FCM token to backend only for non-admin users
+      if (role != 'admin') {
+        final fcmToken = await FirebaseMessaging.instance.getToken();
+        if (fcmToken != null) {
+          await appAuth.client.dio.post(
+            '/api/notifications/save-device-token/',
+            data: {
+              'phone': phone,
+              'device_token': fcmToken,
+            },
+            options: Options(contentType: 'application/json'),
+          );
+        }
+      }
       if (!mounted) return null;
       appTabIndex.value = 0;
       context.go('/app');
@@ -258,6 +274,18 @@ class _PhonePageState extends State<PhonePage> {
       // Get device info to include in the request
       final deviceInfo = await DeviceService().getDeviceInfo();
       final session = await appAuth.verifyPassword(phone, password, deviceInfo: deviceInfo);
+      // Send FCM token to backend for admin user
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      if (fcmToken != null) {
+        await appAuth.client.dio.post(
+          '/api/notifications/save-device-token/',
+          data: {
+            'phone': phone,
+            'device_token': fcmToken,
+          },
+          options: Options(contentType: 'application/json'),
+        );
+      }
       if (!mounted) return;
       appTabIndex.value = 0;
       context.go('/app');

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:firebase_analytics/observer.dart';
 import 'app_router.dart';
 import 'core/api/dio_client.dart';
 import 'core/auth/token_storage.dart';
@@ -19,10 +18,15 @@ import 'features/stock/stock_history_service.dart';
 import 'features/admin/dealer_whitelist_service.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
+import 'dart:convert';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'features/update_required_page.dart';
-import 'features/splash/splash_screen.dart';
 import 'package:go_router/go_router.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:dio/dio.dart';
+import 'features/admin/pages/admin_orders_page.dart';
+import 'features/dealer/pages/sd_my_orders_page.dart';
 
 Session? currentSession;
 
@@ -51,7 +55,7 @@ Future<String> _resolveBaseUrl() async {
     final info = DeviceInfoPlugin();
     if (Platform.isAndroid) {
       final android = await info.androidInfo;
-      return android.isPhysicalDevice ? realDeviceUrl : 'https://myhitechagro.in';//'http://10.0.2.2:8000';
+      return android.isPhysicalDevice ? realDeviceUrl : 'http://10.0.2.2:8000';
     } else if (Platform.isIOS) {
       final ios = await info.iosInfo;
       return ios.isPhysicalDevice ? realDeviceUrl : 'http://127.0.0.1:8000';
@@ -60,12 +64,147 @@ Future<String> _resolveBaseUrl() async {
   return realDeviceUrl;
 }
 
+
+// Initialize once in main()
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+Map<String, dynamic>? _pendingNotificationData;
+bool _isHandlingNotificationTap = false;
+
+Future<void> _registerFcmTokenIfLoggedIn(String token) async {
+  if (token.isEmpty) return;
+
+  currentSession ??= await appAuth.restore();
+  if (currentSession == null) return;
+
+  try {
+    await appAuth.client.dio.post(
+      '/api/notifications/save-device-token/',
+      data: {'device_token': token},
+      options: Options(contentType: 'application/json'),
+    );
+  } catch (_) {
+    // Best-effort only: notification registration should never block app flow.
+  }
+}
+
+Future<void> _setupFcmTokenSync(FirebaseMessaging messaging) async {
+  // Sync the current token on startup for already logged-in users.
+  final token = await messaging.getToken();
+  if (token != null) {
+    await _registerFcmTokenIfLoggedIn(token);
+  }
+
+  // Sync any future token rotation automatically.
+  messaging.onTokenRefresh.listen((newToken) async {
+    await _registerFcmTokenIfLoggedIn(newToken);
+  });
+}
+
+Future<void> _handleOrderNotificationTap(Map<String, dynamic> data) async {
+  final type = (data['type'] ?? '').toString();
+  if (type != 'order') return;
+
+  final orderId = int.tryParse((data['order_id'] ?? '').toString());
+  if (orderId == null) return;
+
+  if (_isHandlingNotificationTap) return;
+  _isHandlingNotificationTap = true;
+
+  try {
+    currentSession ??= await appAuth.restore();
+    if (currentSession == null) {
+      _goLogin();
+      return;
+    }
+
+    globalRouter?.go('/app');
+    await Future.delayed(const Duration(milliseconds: 250));
+
+    final nav = navigatorKey.currentState;
+    if (nav == null) {
+      _pendingNotificationData = data;
+      return;
+    }
+
+    final isAdmin = (currentSession?.role ?? '').toLowerCase() == 'admin';
+    await nav.push(
+      MaterialPageRoute(
+        builder: (_) => isAdmin
+            ? AdminOrdersPage(initialOrderId: orderId)
+            : SdMyOrdersPage(initialOrderId: orderId),
+      ),
+    );
+  } finally {
+    _isHandlingNotificationTap = false;
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase in all modes (debug and release)
   await Firebase.initializeApp();
   analytics = FirebaseAnalytics.instance;
+
+  // Initialize Firebase Messaging for push notifications
+  FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+  // Request notification permissions (iOS, Android 13+)
+  await messaging.requestPermission();
+
+  // Initialize local notifications and handle local notification tap.
+  const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+  await flutterLocalNotificationsPlugin.initialize(
+    settings: const InitializationSettings(android: androidInit),
+    onDidReceiveNotificationResponse: (NotificationResponse response) async {
+      final payload = response.payload;
+      if (payload == null || payload.isEmpty) return;
+      try {
+        final decoded = jsonDecode(payload);
+        if (decoded is Map<String, dynamic>) {
+          await _handleOrderNotificationTap(decoded);
+        }
+      } catch (_) {}
+    },
+  );
+
+  // Handle foreground messages
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    // TODO: Show notification in-app (Snackbar, Dialog, etc.)
+    print('Received foreground notification: \\${message.notification?.title}');
+    // Show local notification
+    flutterLocalNotificationsPlugin.show(id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    title: message.notification?.title ?? 'Title',
+    body: message.notification?.body ?? 'Body',
+    notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'default_channel',
+          'Default',
+          icon: 'ic_notification',
+          importance: Importance.max,
+          priority: Priority.high,
+        ),
+      ),
+      payload: jsonEncode(message.data),
+    );
+  });
+
+  // Handle background and terminated messages
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
+    print('Notification opened: \\${message.notification?.title}');
+    await _handleOrderNotificationTap(message.data);
+  });
+
+  final initialMessage = await messaging.getInitialMessage();
+  if (initialMessage != null) {
+    _pendingNotificationData = initialMessage.data;
+  }
+
+  // Get and print device token (send this to backend for targeting)
+  String? fcmToken = await messaging.getToken();
+  print('FCM Token: \\${fcmToken}');
 
   // Initialize SharedPreferences for cart storage
   await initCartStorage();
@@ -87,6 +226,8 @@ void main() async {
   stockHistoryApi = StockHistoryService(client);
   dealerWhitelistApi = DealerWhitelistService(client);
   ordersApi = OrdersService(client);
+
+  await _setupFcmTokenSync(messaging);
 
   // Restore cart and favorites for logged-in user
   final phone = currentSession?.phone;
@@ -129,7 +270,10 @@ void _goLogin() {
   if (globalRouter != null) {
     globalRouter!.go('/login');
   } else {
-    navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (_) => false);
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      GoRouter.of(context).go('/login');
+    }
   }
 }
 
@@ -150,6 +294,13 @@ class _AgriAppState extends State<AgriApp> {
     super.initState();
     _router = buildRouter();
     globalRouter = _router;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final pendingData = _pendingNotificationData;
+      if (pendingData == null) return;
+      _pendingNotificationData = null;
+      await _handleOrderNotificationTap(pendingData);
+    });
   }
 
   @override

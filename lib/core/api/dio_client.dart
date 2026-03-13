@@ -55,9 +55,11 @@ class DioClient {
       },
 
       onError: (e, handler) async {
+        final path = e.requestOptions.path;
+        final statusCode = e.response?.statusCode;
+
         // Handle version mismatch (426) globally
-        if (e.response?.statusCode == 426) {
-          final path = e.requestOptions.path;
+        if (statusCode == 426) {
           if (!path.contains('/auth/')) {
             showUpdateRequiredPage();
           }
@@ -67,18 +69,33 @@ class DioClient {
         // Handle device blocked (403 device_blocked)
         final responseData = e.response?.data;
         final errorCode = responseData is Map ? responseData['error'] : null;
-        if (e.response?.statusCode == 403 && errorCode == 'device_blocked') {
+        if (statusCode == 403 && errorCode == 'device_blocked') {
           await storage.clear();
           showDeviceBlockedPage();
           return handler.reject(e);
         }
 
-        if (e.response?.statusCode != 401) return handler.next(e);
+        // If refresh token is invalid (e.g. JWT SIGNING_KEY changed),
+        // /auth/refresh returns 401. We must immediately route to login.
+        if (statusCode == 401 && path.contains('/auth/')) {
+          await storage.clear();
+          showSessionExpiredPage();
+          return handler.next(e);
+        }
 
-        final path = e.requestOptions.path;
+        // Some backends return 403 for missing/invalid auth instead of 401.
+        if (statusCode == 403 && !path.contains('/auth/') && _isAuthRelatedForbidden(responseData)) {
+          await storage.clear();
+          showSessionExpiredPage();
+          return handler.next(e);
+        }
+
+        if (statusCode != 401) return handler.next(e);
+
         // Never retry auth endpoints
         if (path.contains('/auth/')) {
           await storage.clear();
+          showSessionExpiredPage();
           return handler.next(e);
         }
 
@@ -201,5 +218,21 @@ class DioClient {
       showSessionExpiredPage();
       return null;
     }
+  }
+
+  bool _isAuthRelatedForbidden(dynamic responseData) {
+    if (responseData is! Map) return false;
+
+    final detail = (responseData['detail'] ?? '').toString().toLowerCase();
+    final code = (responseData['code'] ?? '').toString().toLowerCase();
+    final error = (responseData['error'] ?? '').toString().toLowerCase();
+
+    if (code == 'not_authenticated' || code == 'token_not_valid') return true;
+    if (error == 'token_not_valid') return true;
+
+    return detail.contains('authentication credentials were not provided') ||
+        detail.contains('not authenticated') ||
+        detail.contains('token is invalid') ||
+        detail.contains('token not valid');
   }
 }

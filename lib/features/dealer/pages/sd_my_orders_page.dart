@@ -4,7 +4,9 @@ import '../../orders/order_models.dart';
 import '../../orders/mark_sold_page.dart';
 
 class SdMyOrdersPage extends StatefulWidget {
-  const SdMyOrdersPage({super.key});
+  final int? initialOrderId;
+
+  const SdMyOrdersPage({super.key, this.initialOrderId});
 
   @override
   State<SdMyOrdersPage> createState() => _SdMyOrdersPageState();
@@ -14,6 +16,7 @@ class _SdMyOrdersPageState extends State<SdMyOrdersPage> {
   bool loading = true;
   String? error;
   List<Order> orders = [];
+  int? _pendingOrderId;
 
   Future<void> load() async {
     setState(() {
@@ -27,12 +30,85 @@ class _SdMyOrdersPageState extends State<SdMyOrdersPage> {
       error = "Failed to load orders: $e";
     } finally {
       setState(() => loading = false);
+      _openOrderFromNotificationIfNeeded();
     }
+  }
+
+  void _openOrderFromNotificationIfNeeded() {
+    final orderId = _pendingOrderId;
+    if (!mounted || orderId == null) return;
+
+    _pendingOrderId = null;
+    final match = orders.where((o) => o.id == orderId).toList();
+
+    if (match.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Order #$orderId not found")),
+      );
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _showOrderDetailsDialog(match.first);
+    });
+  }
+
+  Future<void> _showOrderDetailsDialog(Order o) async {
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text("Order #${o.id}"),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Status: ${o.status}", style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              _buildDeliveryStatusChip(o.deliveryStatus),
+              const Divider(height: 20),
+              ...o.items.map(
+                (it) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text("- ${it.productName}: req ${it.requestedQty}, appr ${it.approvedQty}"),
+                ),
+              ),
+              if ((o.note ?? '').trim().isNotEmpty) ...[
+                const Divider(height: 20),
+                Text("Note: ${o.note}"),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          if (o.deliveryStatus == 'DELIVERED')
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => MarkSoldPage(order: o)),
+                );
+                if (result == true) {
+                  load();
+                }
+              },
+              child: const Text('Mark as Sold'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   void initState() {
     super.initState();
+    _pendingOrderId = widget.initialOrderId;
     load();
   }
 

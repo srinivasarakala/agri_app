@@ -279,7 +279,7 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                                         imageUrl: p.imageUrl!,
                                                         width: double.infinity,
                                                         height: double.infinity,
-                                                        fit: BoxFit.fill,
+                                                        fit: BoxFit.cover,
                                                         borderRadius: const BorderRadius.only(
                                                           topLeft: Radius.circular(16),
                                                           topRight: Radius.circular(16),
@@ -397,7 +397,7 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                                             imageUrl: p.imageUrl!,
                                                             width: double.infinity,
                                                             height: double.infinity,
-                                                            fit: BoxFit.fill,
+                                                            fit: BoxFit.cover,
                                                             borderRadius: const BorderRadius.only(
                                                               topLeft: Radius.circular(16),
                                                               topRight: Radius.circular(16),

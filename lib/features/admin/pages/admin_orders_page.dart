@@ -6,7 +6,9 @@ final searchCtrl = TextEditingController();
 bool pendingOnly = true;
 
 class AdminOrdersPage extends StatefulWidget {
-  const AdminOrdersPage({super.key});
+  final int? initialOrderId;
+
+  const AdminOrdersPage({super.key, this.initialOrderId});
 
   @override
   State<AdminOrdersPage> createState() => _AdminOrdersPageState();
@@ -16,6 +18,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
   bool loading = true;
   String? error;
   List<Order> orders = [];
+  int? _pendingOrderId;
 
   Future<void> load() async {
     setState(() {
@@ -33,7 +36,28 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
       setState(() {
         loading = false;
       });
+      _openOrderFromNotificationIfNeeded();
     }
+  }
+
+  void _openOrderFromNotificationIfNeeded() {
+    final orderId = _pendingOrderId;
+    if (!mounted || orderId == null) return;
+
+    _pendingOrderId = null;
+    final match = orders.where((o) => o.id == orderId).toList();
+
+    if (match.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Order #$orderId not found")),
+      );
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _showOrderDetails(match.first);
+    });
   }
 
   Future<void> approveDialog(Order o) async {
@@ -297,6 +321,10 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
   @override
   void initState() {
     super.initState();
+    _pendingOrderId = widget.initialOrderId;
+    if (_pendingOrderId != null) {
+      pendingOnly = false;
+    }
     load();
   }
 
