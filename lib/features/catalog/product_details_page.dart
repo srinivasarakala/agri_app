@@ -20,6 +20,7 @@ class ProductDetailsPage extends StatefulWidget {
 }
 
 class _ProductDetailsPageState extends State<ProductDetailsPage> {
+  late Product _currentProduct;
   late int currentQty;
   bool isFavorite = false;
   bool favoriteLoading = false;
@@ -27,13 +28,42 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   @override
   void initState() {
     super.initState();
-    currentQty = (cartQty.value[widget.product.id] ?? 0).toInt();
-    isFavorite = favorites.value.contains(widget.product.id);
+    _currentProduct = widget.product;
+    currentQty = (cartQty.value[_currentProduct.id] ?? 0).toInt();
+    isFavorite = favorites.value.contains(_currentProduct.id);
     // Log product view event
     AnalyticsService(analytics).logProductView(
-      widget.product.id.toString(),
-      widget.product.name,
+      _currentProduct.id.toString(),
+      _currentProduct.name,
     );
+  }
+
+  Future<void> _refreshProduct() async {
+    try {
+      final products = await catalogApi.listProducts();
+      final refreshed = products.where((p) => p.id == _currentProduct.id).toList();
+      if (refreshed.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Product no longer available')),
+        );
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _currentProduct = refreshed.first;
+        isFavorite = favorites.value.contains(_currentProduct.id);
+        if (currentQty > _currentProduct.globalStock.toInt()) {
+          currentQty = _currentProduct.globalStock.toInt().clamp(0, 999999);
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to refresh product')),
+      );
+    }
   }
 
   void _updateQuantity(int newQty) {
@@ -44,10 +74,10 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 
   void _addToCart() {
     if (currentQty > 0) {
-      cartSetQty(widget.product.id, currentQty);
+      cartSetQty(_currentProduct.id, currentQty);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Added ${currentQty} ${widget.product.unit} to cart'),
+          content: Text('Added ${currentQty} ${_currentProduct.unit} to cart'),
           duration: const Duration(seconds: 2),
           backgroundColor: Colors.green,
         ),
@@ -56,7 +86,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   }
 
   Future<void> _shareProduct() async {
-    final p = widget.product;
+    final p = _currentProduct;
     final msg = StringBuffer();
     msg.writeln('🌾 *${p.name}*');
     if (p.brand != null && p.brand!.isNotEmpty) msg.writeln('Brand: ${p.brand}');
@@ -88,7 +118,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   }
 
   void _showFullScreenImage() {
-    final imageUrl = widget.product.imageUrl;
+    final imageUrl = _currentProduct.imageUrl;
     if (imageUrl == null || imageUrl.isEmpty) return;
     showDialog<void>(
       context: context,
@@ -136,9 +166,9 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     final prevFavorites = Set<int>.from(favorites.value);
     // Optimistic update
     setState(() { isFavorite = !isFavorite; });
-    toggleFavorite(widget.product.id);
+    toggleFavorite(_currentProduct.id);
     try {
-      await catalogApi.toggleFavorite(widget.product.id);
+      await catalogApi.toggleFavorite(_currentProduct.id);
       await syncFavorites(); // Ensure backend sync
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -167,18 +197,21 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final inStock = widget.product.globalStock > 0;
-    final discount = widget.product.mrp > widget.product.sellingPrice
-        ? ((widget.product.mrp - widget.product.sellingPrice) /
-                  widget.product.mrp *
+    final inStock = _currentProduct.globalStock > 0;
+    final discount = _currentProduct.mrp > _currentProduct.sellingPrice
+      ? ((_currentProduct.mrp - _currentProduct.sellingPrice) /
+            _currentProduct.mrp *
                   100)
               .toStringAsFixed(0)
         : null;
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Column(
+      body: RefreshIndicator(
+        onRefresh: _refreshProduct,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // White top header with back button and favorite
@@ -225,28 +258,30 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
             ),
             
             // Product Image
-            GestureDetector(
-              onTap: (widget.product.imageUrl != null && widget.product.imageUrl!.isNotEmpty)
-                  ? _showFullScreenImage
-                  : null,
-              child: Container(
-                width: double.infinity,
-                height: 350,
-                color: Colors.grey.shade100,
-                child: (widget.product.imageUrl != null && widget.product.imageUrl!.isNotEmpty)
-                    ? Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          ProgressiveImage(
-                            imageUrl: widget.product.imageUrl!,
+            Container(
+              width: double.infinity,
+              height: 350,
+              color: Colors.grey.shade100,
+              child: (_currentProduct.imageUrl != null && _currentProduct.imageUrl!.isNotEmpty)
+                  ? Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        InteractiveViewer(
+                          minScale: 1.0,
+                          maxScale: 5.0,
+                          child: ProgressiveImage(
+                            imageUrl: _currentProduct.imageUrl!,
                             width: double.infinity,
                             height: 350,
                             fit: BoxFit.contain,
                             borderRadius: BorderRadius.circular(0),
                           ),
-                          Positioned(
-                            bottom: 8,
-                            right: 8,
+                        ),
+                        Positioned(
+                          bottom: 8,
+                          right: 8,
+                          child: GestureDetector(
+                            onTap: _showFullScreenImage,
                             child: Container(
                               decoration: BoxDecoration(
                                 color: Colors.black38,
@@ -254,18 +289,18 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                               ),
                               padding: const EdgeInsets.all(4),
                               child: const Icon(
-                                Icons.zoom_in,
+                                Icons.fullscreen,
                                 color: Colors.white,
                                 size: 20,
                               ),
                             ),
                           ),
-                        ],
-                      )
-                    : const Center(
-                        child: Icon(Icons.image, size: 80, color: Colors.grey),
-                      ),
-              ),
+                        ),
+                      ],
+                    )
+                  : const Center(
+                      child: Icon(Icons.image, size: 80, color: Colors.grey),
+                    ),
             ),
 
             Padding(
@@ -275,7 +310,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 children: [
                   // Product Name
                   Text(
-                    widget.product.name,
+                    _currentProduct.name,
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -287,7 +322,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 
                   // SKU
                   Text(
-                    'SKU: ${widget.product.sku}',
+                    'SKU: ${_currentProduct.sku}',
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 12),
@@ -317,7 +352,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                         const SizedBox(width: 6),
                         Text(
                           inStock
-                              ? "In Stock (${widget.product.globalStock.toInt()} ${widget.product.unit})"
+                              ? "In Stock (${_currentProduct.globalStock.toInt()} ${_currentProduct.unit})"
                               : "Out of Stock",
                           style: TextStyle(
                             color: inStock
@@ -336,7 +371,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                   Row(
                     children: [
                       Text(
-                        "₹${widget.product.sellingPrice.toStringAsFixed(2)}",
+                        "₹${_currentProduct.sellingPrice.toStringAsFixed(2)}",
                         style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
@@ -346,7 +381,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                       if (discount != null) ...[
                         const SizedBox(width: 12),
                         Text(
-                          "₹${widget.product.mrp.toStringAsFixed(2)}",
+                          "₹${_currentProduct.mrp.toStringAsFixed(2)}",
                           style: TextStyle(
                             fontSize: 18,
                             color: Colors.grey.shade600,
@@ -379,7 +414,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 
                   // Unit
                   Text(
-                    'per ${widget.product.unit}',
+                    'per ${_currentProduct.unit}',
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   ),
                   const SizedBox(height: 20),
@@ -387,36 +422,36 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                   const SizedBox(height: 20),
 
                   // Brand
-                  if (widget.product.brand != null &&
-                      widget.product.brand!.isNotEmpty) ...[
-                    _buildInfoRow('Brand', widget.product.brand!, Icons.label),
+                  if (_currentProduct.brand != null &&
+                      _currentProduct.brand!.isNotEmpty) ...[
+                    _buildInfoRow('Brand', _currentProduct.brand!, Icons.label),
                     const SizedBox(height: 16),
                   ],
 
                   // Category
-                  if (widget.product.categoryName != null &&
-                      widget.product.categoryName!.isNotEmpty) ...[
+                  if (_currentProduct.categoryName != null &&
+                      _currentProduct.categoryName!.isNotEmpty) ...[
                     _buildInfoRow(
                       'Category',
-                      widget.product.categoryName!,
+                      _currentProduct.categoryName!,
                       Icons.category,
                     ),
                     const SizedBox(height: 16),
                   ],
 
                   // Minimum Quantity
-                  if (widget.product.minQty > 1) ...[
+                  if (_currentProduct.minQty > 1) ...[
                     _buildInfoRow(
                       'Minimum Order',
-                      '${widget.product.minQty.toInt()} ${widget.product.unit}',
+                      '${_currentProduct.minQty.toInt()} ${_currentProduct.unit}',
                       Icons.shopping_basket,
                     ),
                     const SizedBox(height: 16),
                   ],
 
                   // Tags
-                  if (widget.product.tags != null &&
-                      widget.product.tags!.isNotEmpty) ...[
+                  if (_currentProduct.tags != null &&
+                      _currentProduct.tags!.isNotEmpty) ...[
                     const Text(
                       'Tags',
                       style: TextStyle(
@@ -428,7 +463,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: widget.product.tags!
+                      children: _currentProduct.tags!
                           .split(',')
                           .map(
                             (tag) => Chip(
@@ -449,8 +484,8 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                   ],
 
                   // Description
-                  if (widget.product.description != null &&
-                      widget.product.description!.isNotEmpty) ...[
+                  if (_currentProduct.description != null &&
+                      _currentProduct.description!.isNotEmpty) ...[
                     const Text(
                       'Description',
                       style: TextStyle(
@@ -460,7 +495,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      widget.product.description!,
+                      _currentProduct.description!,
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey.shade700,
@@ -484,7 +519,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                       IconButton(
                         onPressed: currentQty > 0
                             ? () {
-                                final minQty = widget.product.minQty.toInt();
+                                final minQty = _currentProduct.minQty.toInt();
                                 _updateQuantity(
                                   (currentQty - minQty).clamp(0, 999999),
                                 );
@@ -515,7 +550,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                       ),
                       IconButton(
                         onPressed: () {
-                          final minQty = widget.product.minQty.toInt();
+                          final minQty = _currentProduct.minQty.toInt();
                           _updateQuantity(currentQty + minQty);
                         },
                         icon: const Icon(Icons.add_circle_outline),
@@ -524,7 +559,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        widget.product.unit,
+                        _currentProduct.unit,
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.grey.shade600,
@@ -557,7 +592,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                                 ),
                               ),
                               Text(
-                                '₹${(widget.product.sellingPrice * currentQty).toStringAsFixed(2)}',
+                                '₹${(_currentProduct.sellingPrice * currentQty).toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
@@ -597,6 +632,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

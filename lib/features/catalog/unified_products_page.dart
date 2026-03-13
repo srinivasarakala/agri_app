@@ -120,6 +120,16 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
     } catch (_) {}
   }
 
+  Widget _buildRefreshState(Widget child) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 140),
+        Center(child: child),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -222,14 +232,17 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
               ),
             ),
           Expanded(
-            child: filterType == 'Spare Part'
+            child: RefreshIndicator(
+              onRefresh: _load,
+              child: filterType == 'Spare Part'
                 ? (loading
-                    ? const Center(child: CircularProgressIndicator())
+                ? _buildRefreshState(const CircularProgressIndicator())
                     : error != null
-                        ? Center(child: Text(error!))
+                  ? _buildRefreshState(Text(error!))
                         : sparePartsProducts.isEmpty
-                            ? const Center(child: Text("No spare parts found"))
+                    ? _buildRefreshState(const Text("No spare parts found"))
                             : GridView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
                                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: 2,
@@ -339,12 +352,13 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                               ))
                 : filterType == 'Product'
                 ? (loading
-                    ? const Center(child: CircularProgressIndicator())
+                  ? _buildRefreshState(const CircularProgressIndicator())
                     : error != null
-                        ? Center(child: Text(error!))
+                    ? _buildRefreshState(Text(error!))
                         : filteredProducts.isEmpty
-                            ? const Center(child: Text("No products found"))
+                      ? _buildRefreshState(const Text("No products found"))
                             : GridView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
                                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: 2,
@@ -480,6 +494,7 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                                 },
                               ))
                 : GridView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
@@ -548,6 +563,7 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
                       );
                     },
                   ),
+            ),
           ),
         ],
       ),
