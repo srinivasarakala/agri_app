@@ -87,6 +87,48 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     await Share.share(msg.toString());
   }
 
+  void _showFullScreenImage() {
+    final imageUrl = widget.product.imageUrl;
+    if (imageUrl == null || imageUrl.isEmpty) return;
+    showDialog<void>(
+      context: context,
+      useSafeArea: false,
+      builder: (ctx) => Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 6.0,
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.contain,
+                  placeholder: (context, url) => const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
+                  errorWidget: (context, url, error) => const Icon(
+                    Icons.broken_image,
+                    color: Colors.white54,
+                    size: 80,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: MediaQuery.of(ctx).padding.top + 8,
+              right: 12,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                onPressed: () => Navigator.pop(ctx),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _toggleFavorite() async {
     if (favoriteLoading) return;
     setState(() { favoriteLoading = true; });
@@ -183,21 +225,47 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
             ),
             
             // Product Image
-            Container(
-              width: double.infinity,
-              height: 350,
-              color: Colors.grey.shade100,
-              child: (widget.product.imageUrl != null && widget.product.imageUrl!.isNotEmpty)
-                  ? ProgressiveImage(
-                      imageUrl: widget.product.imageUrl!,
-                      width: double.infinity,
-                      height: 350,
-                      fit: BoxFit.contain,
-                      borderRadius: BorderRadius.circular(0),
-                    )
-                  : const Center(
-                      child: Icon(Icons.image, size: 80, color: Colors.grey),
-                    ),
+            GestureDetector(
+              onTap: (widget.product.imageUrl != null && widget.product.imageUrl!.isNotEmpty)
+                  ? _showFullScreenImage
+                  : null,
+              child: Container(
+                width: double.infinity,
+                height: 350,
+                color: Colors.grey.shade100,
+                child: (widget.product.imageUrl != null && widget.product.imageUrl!.isNotEmpty)
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ProgressiveImage(
+                            imageUrl: widget.product.imageUrl!,
+                            width: double.infinity,
+                            height: 350,
+                            fit: BoxFit.contain,
+                            borderRadius: BorderRadius.circular(0),
+                          ),
+                          Positioned(
+                            bottom: 8,
+                            right: 8,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black38,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              padding: const EdgeInsets.all(4),
+                              child: const Icon(
+                                Icons.zoom_in,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : const Center(
+                        child: Icon(Icons.image, size: 80, color: Colors.grey),
+                      ),
+              ),
             ),
 
             Padding(
