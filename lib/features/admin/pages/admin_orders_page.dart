@@ -284,11 +284,11 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
   String _getDeliveryActionLabel(String status) {
     switch (status) {
       case 'PENDING_DELIVERY':
-        return 'Mark Pending';
+        return 'Set Delivery Pending';
       case 'IN_TRANSIT':
-        return 'Mark Shipped';
+        return 'Set In Transit';
       case 'DELIVERED':
-        return 'Mark Delivered';
+        return 'Set Delivered';
       default:
         return status;
     }
@@ -301,10 +301,13 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
       await ordersApi.adminUpdateDeliveryStatus(o.id, newStatus);
       await load();
       if (mounted) {
+        final suffix = newStatus == 'PENDING_DELIVERY'
+            ? ' (approval status remains unchanged)'
+            : '';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "Delivery status updated to ${_getDeliveryActionLabel(newStatus)}",
+              "Delivery status updated to ${_getDeliveryActionLabel(newStatus)}$suffix",
             ),
           ),
         );

@@ -68,9 +68,60 @@ Future<String> _resolveBaseUrl() async {
 // Initialize once in main()
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
+const AndroidNotificationChannel _defaultNotificationChannel =
+    AndroidNotificationChannel(
+      'default_channel',
+      'Default',
+      description: 'General order and app notifications',
+      importance: Importance.max,
+    );
+const int _maxNotificationId = 0x7fffffff;
 
 Map<String, dynamic>? _pendingNotificationData;
 bool _isHandlingNotificationTap = false;
+
+int _buildNotificationId(RemoteMessage message) {
+  final source =
+      message.messageId ??
+      message.data['order_id']?.toString() ??
+      '${message.sentTime?.millisecondsSinceEpoch ?? DateTime.now().millisecondsSinceEpoch}:${message.notification?.title ?? ''}:${message.notification?.body ?? ''}';
+
+  var hash = 0;
+  for (final codeUnit in source.codeUnits) {
+    hash = ((hash * 31) + codeUnit) & _maxNotificationId;
+  }
+
+  return hash == 0
+      ? DateTime.now().millisecondsSinceEpoch.remainder(_maxNotificationId)
+      : hash;
+}
+
+Future<void> _showForegroundNotification(RemoteMessage message) async {
+  final notification = message.notification;
+  final data = message.data;
+  final title = notification?.title ?? data['title']?.toString() ?? 'Notification';
+  final body = notification?.body ?? data['body']?.toString() ?? '';
+
+  await flutterLocalNotificationsPlugin.show(
+    id: _buildNotificationId(message),
+    title: title,
+    body: body,
+    notificationDetails: const NotificationDetails(
+      android: AndroidNotificationDetails(
+        'default_channel',
+        'Default',
+        channelDescription: 'General order and app notifications',
+        icon: 'ic_notification',
+        color: Color(0xFF2E7D32),
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+      ),
+    ),
+    payload: jsonEncode(data),
+  );
+}
 
 Future<void> _registerFcmTokenIfLoggedIn(String token) async {
   if (token.isEmpty) return;
@@ -170,30 +221,19 @@ void main() async {
     },
   );
 
+  final androidNotifications = flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+  await androidNotifications?.createNotificationChannel(_defaultNotificationChannel);
+
   // Handle foreground messages
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    // TODO: Show notification in-app (Snackbar, Dialog, etc.)
-    print('Received foreground notification: \\${message.notification?.title}');
-    // Show local notification
-    flutterLocalNotificationsPlugin.show(id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-    title: message.notification?.title ?? 'Title',
-    body: message.notification?.body ?? 'Body',
-    notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'default_channel',
-          'Default',
-          icon: 'ic_notification',
-          importance: Importance.max,
-          priority: Priority.high,
-        ),
-      ),
-      payload: jsonEncode(message.data),
-    );
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+    print('Received foreground notification: ${message.notification?.title ?? message.data['title']}');
+    await _showForegroundNotification(message);
   });
 
   // Handle background and terminated messages
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) async {
-    print('Notification opened: \\${message.notification?.title}');
+    print('Notification opened: ${message.notification?.title}');
     await _handleOrderNotificationTap(message.data);
   });
 
@@ -204,7 +244,7 @@ void main() async {
 
   // Get and print device token (send this to backend for targeting)
   String? fcmToken = await messaging.getToken();
-  print('FCM Token: \\${fcmToken}');
+  print('FCM Token: ${fcmToken}');
 
   // Initialize SharedPreferences for cart storage
   await initCartStorage();

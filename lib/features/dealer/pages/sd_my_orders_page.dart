@@ -19,19 +19,32 @@ class _SdMyOrdersPageState extends State<SdMyOrdersPage> {
   int? _pendingOrderId;
 
   Future<void> load() async {
+    if (!mounted) return;
+
     setState(() {
       loading = true;
       error = null;
     });
 
+    List<Order>? nextOrders;
+    String? nextError;
+
     try {
-      orders = await ordersApi.myOrders();
+      nextOrders = await ordersApi.myOrders();
     } catch (e) {
-      error = "Failed to load orders: $e";
-    } finally {
-      setState(() => loading = false);
-      _openOrderFromNotificationIfNeeded();
+      nextError = "Failed to load orders: $e";
     }
+
+    if (!mounted) return;
+
+    setState(() {
+      if (nextOrders != null) {
+        orders = nextOrders!;
+      }
+      error = nextError;
+      loading = false;
+    });
+    _openOrderFromNotificationIfNeeded();
   }
 
   void _openOrderFromNotificationIfNeeded() {
@@ -90,8 +103,8 @@ class _SdMyOrdersPageState extends State<SdMyOrdersPage> {
                   context,
                   MaterialPageRoute(builder: (_) => MarkSoldPage(order: o)),
                 );
-                if (result == true) {
-                  load();
+                if (result == true && mounted) {
+                  await load();
                 }
               },
               child: const Text('Mark as Sold'),
