@@ -115,7 +115,90 @@ class _AdminTopProductsPageState extends State<AdminTopProductsPage> {
       setState(() => uploading = false);
     }
   }
+  Future<void> _editImage(int index) async {
+    try {
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      if (image == null) return;
+      setState(() => uploading = true);
+      final imageUrl = await catalogApi.uploadTopProductImage(index, image.path);
+      setState(() {
+        topProductImages[index] = imageUrl;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Image updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => uploading = false);
+    }
+  }
 
+  Future<void> _editPosition(int index) async {
+    final TextEditingController controller = TextEditingController(text: (index + 1).toString());
+    final newPosition = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Position'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: 'New Position'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              final pos = int.tryParse(controller.text);
+              Navigator.pop(context, pos);
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (newPosition == null || newPosition < 1 || newPosition > topProductImages.length || newPosition == index + 1) return;
+    setState(() => uploading = true);
+    try {
+      await catalogApi.updateTopProductPosition(index, newPosition - 1);
+      await _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Position updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update position: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => uploading = false);
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -212,45 +295,73 @@ class _AdminTopProductsPageState extends State<AdminTopProductsPage> {
                                 padding: const EdgeInsets.all(12),
                                 child: Row(
                                   children: [
-                                    // Position badge
-                                    Container(
-                                      width: 50,
-                                      height: 50,
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.shade700,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          '#${index + 1}',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
+                                    // Position badge with edit
+                                    Stack(
+                                      children: [
+                                        Container(
+                                          width: 50,
+                                          height: 50,
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.shade700,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              '#${index + 1}',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 18,
+                                              ),
+                                            ),
                                           ),
                                         ),
-                                      ),
+                                        Positioned(
+                                          right: 0,
+                                          bottom: 0,
+                                          child: IconButton(
+                                            icon: const Icon(Icons.edit, size: 18),
+                                            color: Colors.white,
+                                            tooltip: 'Edit Position',
+                                            onPressed: () => _editPosition(index),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     const SizedBox(width: 16),
-                                    // Image preview
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: CachedNetworkImage(
-                                        imageUrl: topProductImages[index],
-                                        width: 100,
-                                        height: 100,
-                                        fit: BoxFit.cover,
-                                        errorWidget: (_, __, ___) => Container(
-                                          width: 100,
-                                          height: 100,
-                                          color: Colors.grey.shade200,
-                                          child: const Icon(
-                                            Icons.broken_image,
-                                            size: 40,
-                                            color: Colors.grey,
+                                    // Image preview with edit
+                                    Stack(
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: CachedNetworkImage(
+                                            imageUrl: topProductImages[index],
+                                            width: 100,
+                                            height: 100,
+                                            fit: BoxFit.cover,
+                                            errorWidget: (_, __, ___) => Container(
+                                              width: 100,
+                                              height: 100,
+                                              color: Colors.grey.shade200,
+                                              child: const Icon(
+                                                Icons.broken_image,
+                                                size: 40,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
                                           ),
                                         ),
-                                      ),
+                                        Positioned(
+                                          right: 0,
+                                          bottom: 0,
+                                          child: IconButton(
+                                            icon: const Icon(Icons.edit, size: 18),
+                                            color: Colors.blue,
+                                            tooltip: 'Edit Image',
+                                            onPressed: () => _editImage(index),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                     const SizedBox(width: 16),
                                     // Info and actions

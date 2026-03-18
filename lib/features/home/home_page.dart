@@ -7,7 +7,6 @@ import '../catalog/brand.dart';
 import '../catalog/product.dart';
 import '../catalog/category.dart';
 import '../catalog/product_video.dart';
-import '../../core/widgets/progressive_image.dart';
 import '../catalog/widgets/categories_carousel.dart';
 import '../catalog/widgets/product_videos_carousel.dart';
 import '../catalog/unified_products_page.dart';
@@ -430,6 +429,7 @@ Widget build(BuildContext context) {
                     context,
                     MaterialPageRoute(
                       builder: (context) => UnifiedProductsPage(
+                        showFilterRow: true,
                         brandId: brand.id,
                         brandName: brand.name,
                       ),

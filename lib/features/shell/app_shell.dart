@@ -126,8 +126,8 @@ class _AppShellState extends State<AppShell> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             constraints: const BoxConstraints(
-                              minWidth: 18,
-                              minHeight: 18,
+                              minWidth: 14,
+                              minHeight: 14,
                             ),
                             child: Text(
                               cartCount > 99 ? "99+" : cartCount.toString(),
@@ -172,6 +172,9 @@ class _CartPageState extends State<_CartPage> {
   @override
   void initState() {
     super.initState();
+    cartQty.addListener(() {
+      if (mounted && !loading) setState(() {});  // Refresh UI on cart change
+    });
     _loadProducts();
   }
 
@@ -181,6 +184,8 @@ class _CartPageState extends State<_CartPage> {
       final allProducts = await catalogApi.listProducts();
       // Show all products in cart (including spare parts)
       all = allProducts;
+      // Force cart rebuild by notifying listeners
+    if (mounted) setState(() {});  // Triggers ValueListenableBuilder
     } on DioException catch (e) {
       if (e.response?.statusCode == 401 && mounted) {
         // Session expired, redirect to login
@@ -508,33 +513,33 @@ class _CartPageState extends State<_CartPage> {
                                               const SizedBox(width: 8),
                                               // Editable quantity field
                                               Container(
-                                                width: 50,
-                                                height: 32,
-                                                alignment: Alignment.center,
+                                                width: 52,
+                                                height: 36,
                                                 decoration: BoxDecoration(
-                                                  border: Border.all(color: Colors.grey.shade300),
-                                                  borderRadius: BorderRadius.circular(4),
+                                                  border: Border.all(color: Colors.grey.shade400, width: 1.5),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  color: Colors.grey.shade50,
                                                 ),
-                                                child: TextField(
-                                                  controller: TextEditingController(text: "$qty"),
-                                                  keyboardType: TextInputType.number,
-                                                  textAlign: TextAlign.center,
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                  decoration: const InputDecoration(
-                                                    border: InputBorder.none,
-                                                    contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                                                  ),
-                                                  onSubmitted: (value) {
-                                                    final newQty = int.tryParse(value) ?? qty;
-                                                    if (newQty > 0) {
-                                                      cartSetQty(p.id, newQty);
-                                                    }
-                                                  },
+                                                child: Row(  // Row instead of TextField for perfect control
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    // Qty display as Text (NOT TextField)
+                                                    Expanded(
+                                                      child: Center(
+                                                        child: Text(
+                                                          '$qty',
+                                                          style: const TextStyle(
+                                                            fontSize: 16,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: Colors.black87,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
+
                                               const SizedBox(width: 8),
                                               // Increment button
                                               Container(

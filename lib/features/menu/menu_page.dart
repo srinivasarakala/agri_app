@@ -175,34 +175,24 @@ class MenuPage extends StatelessWidget {
               title: Text(currentSession?.phone ?? "No phone"),
               subtitle: Text(role),
             ),
+            
             const Divider(height: 1),
             ListTile(
-              leading: const Icon(Icons.account_circle),
-              title: const Text("My Profile"),
-              subtitle: const Text("Update your personal information"),
+              leading: const Icon(Icons.favorite),
+              title: const Text("Favorites"),
+              subtitle: const Text("View your favorite products"),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const ProfilePage()),
-              ),
-            ),
-              const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.favorite),
-                title: const Text("Favorites"),
-                subtitle: const Text("View your favorite products"),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => UnifiedProductsPage(
-                      showOnlyFavorites: true,
-                      showSearchBar: true,
-                      showFilterRow: false,
-                    ),
+                MaterialPageRoute(
+                  builder: (_) => UnifiedProductsPage(
+                    showOnlyFavorites: true,
+                    showSearchBar: true,
+                    showFilterRow: false,
                   ),
                 ),
               ),
+            ),
           ],
         ),
 

@@ -206,7 +206,7 @@ void main() async {
   await messaging.requestPermission();
 
   // Initialize local notifications and handle local notification tap.
-  const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const androidInit = AndroidInitializationSettings('@mipmap/launcher_icon');
   await flutterLocalNotificationsPlugin.initialize(
     settings: const InitializationSettings(android: androidInit),
     onDidReceiveNotificationResponse: (NotificationResponse response) async {
@@ -267,15 +267,29 @@ void main() async {
   dealerWhitelistApi = DealerWhitelistService(client);
   ordersApi = OrdersService(client);
 
+  final phone = currentSession?.phone;
+  print('main(): Session phone: $phone');  // Debug
+
+  // Restore session FIRST
+  currentSession ??= await appAuth.restore();
+  print('main(): Restored session: ${currentSession?.phone}');
+
   await _setupFcmTokenSync(messaging);
 
-  // Restore cart and favorites for logged-in user
-  final phone = currentSession?.phone;
-  if (phone != null) {
-    await loadUserCart(phone);
+  // NOW load cart with guaranteed session
+  if (currentSession?.phone != null) {
+    print('main(): Loading cart for ${currentSession!.phone}');
+    Future.microtask(() {
+      loadUserCart(currentSession!.phone!);
+    });
+  } else {
+    print('main(): No session, cart remains empty');
   }
   runApp(const AgriApp());
 }
+
+// create an function to sort an array
+
 
 void showUpdateRequiredPage() {
   if (globalRouter != null) {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:pavan_agro/core/theme/app_theme.dart';
 import '../../core/widgets/progressive_image.dart';
 import '../catalog/product.dart';
 import '../catalog/brand.dart';
@@ -93,6 +93,13 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
       }
       // Load spare parts separately
       sparePartsProducts = all.where((p) => p.isSparePart).toList();
+      sparePartsProducts =all.where((p) {
+          bool matches =  p.isSparePart;
+          if (widget.brandName != null) {
+            matches = matches && (p.brand == widget.brandName);
+          }
+          return matches;
+        }).toList();
       _applyFilters();
     } catch (e) {
       error = "Failed to load products";
@@ -129,6 +136,36 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
       ],
     );
   }
+
+  ChoiceChip _buildFilterChip(String label, bool selected) {
+    return ChoiceChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          color: selected ? Colors.white : AppTheme.textColor,
+          fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+      selected: selected,
+      selectedColor: AppTheme.secondaryColor,  // 0xFF388E3C - Modern green background when selected
+      backgroundColor: AppTheme.backgroundColor,  // 0xFFF5F5F5 - Light bg when unselected
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: selected
+            ? const BorderSide(color: AppTheme.primaryColor, width: 2)
+            : BorderSide(color: AppTheme.secondaryColor.withOpacity(0.5), width: 1),  // Light green border
+      ),
+      onSelected: (value) {
+        if (value) {
+          setState(() {
+            filterType = label;
+          });
+        }
+      },
+    );
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -185,49 +222,18 @@ class _UnifiedProductsPageState extends State<UnifiedProductsPage> {
       ),
       body: Column(
         children: [
+          // Quick filter type chips (replaces dropdown + buttons)
           if (showFilterRow)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.start,
                 children: [
-                  Expanded(
-                    child: DropdownButton<String>(
-                      value: filterType,
-                      items: const [
-                        DropdownMenuItem(value: 'Product', child: Text('Product')),
-                        DropdownMenuItem(value: 'Brand', child: Text('Brand')),
-                        DropdownMenuItem(value: 'Spare Part', child: Text('Spare Part')),
-                      ],
-                      onChanged: (v) {
-                        if (v != null) setState(() => filterType = v);
-                      },
-                      isExpanded: true,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    icon: const Icon(Icons.filter_alt_outlined),
-                    label: const Text('Filter'),
-                    onPressed: () {},
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    icon: const Icon(Icons.sort),
-                    label: const Text('Sort'),
-                    onPressed: () {},
-                  ),
+                  _buildFilterChip('Product', filterType == 'Product'),
+                  _buildFilterChip('Spare Part', filterType == 'Spare Part'),
+                  if (widget.brandId == null) _buildFilterChip('Brand', filterType == 'Brand'),
                 ],
               ),
             ),

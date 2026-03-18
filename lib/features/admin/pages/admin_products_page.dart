@@ -590,7 +590,7 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
   late TextEditingController mrpCtrl;
   late TextEditingController priceCtrl;
   late TextEditingController stockCtrl;
-  late TextEditingController minQtyCtrl;
+  //late TextEditingController minQtyCtrl;
   late TextEditingController imageUrlCtrl;
 
   Category? selectedCategory;
@@ -626,9 +626,10 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
     stockCtrl = TextEditingController(
       text: widget.product?.globalStock.toStringAsFixed(2) ?? '',
     );
-    minQtyCtrl = TextEditingController(
-      text: widget.product?.minQty.toStringAsFixed(0) ?? '1',
-    );
+    // remove minqty input field and default to 1.
+    //minQtyCtrl = TextEditingController(
+      //text: widget.product?.minQty.toStringAsFixed(0) ?? '1',
+    //);
     imageUrlCtrl = TextEditingController(text: widget.product?.imageUrl ?? '');
     isActive = widget.product?.isActive ?? true;
 
@@ -651,7 +652,7 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
     mrpCtrl.dispose();
     priceCtrl.dispose();
     stockCtrl.dispose();
-    minQtyCtrl.dispose();
+    //minQtyCtrl.dispose();
     imageUrlCtrl.dispose();
     super.dispose();
   }
@@ -696,7 +697,7 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
         'mrp': double.tryParse(mrpCtrl.text) ?? 0,
         'selling_price': double.tryParse(priceCtrl.text) ?? 0,
         'global_stock': double.tryParse(stockCtrl.text) ?? 0,
-        'min_qty': int.tryParse(minQtyCtrl.text) ?? 1,
+        'min_qty': 1,
         'is_active': isActive,
         'image_url': imageUrlCtrl.text.isEmpty ? null : imageUrlCtrl.text,
         'category': selectedCategory?.id,
@@ -851,18 +852,6 @@ class _ProductFormSheetState extends State<ProductFormSheet> {
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'Stock Quantity',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: minQtyCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Min Quantity',
-                      hintText: '1',
                       border: OutlineInputBorder(),
                     ),
                   ),

@@ -6,7 +6,7 @@
     <application
         android:label="Pavan HI-TECH Agro"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/launcher_icon">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -40,6 +40,9 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_color"
             android:resource="@color/notification_accent" />
+        <meta-data
+            android:name="com.google.andriod.recaptcha.SITE_KEY"
+            android:value="6LdvyIssAAAAALa79auWJiJ3-8Ra6JpyrjZHRXAo" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

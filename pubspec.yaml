@@ -30,6 +30,7 @@ dependencies:
   cached_network_image: ^3.4.0
   shimmer: ^3.0.0
   flutter_local_notifications: ^21.0.0
+  recaptcha_enterprise_flutter: ^18.8.2
 
 dev_dependencies:
   flutter_test:
@@ -46,4 +47,5 @@ flutter:
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/icon/app_icon.png"
+  image_path: "assets/icon/icon.png"
+  

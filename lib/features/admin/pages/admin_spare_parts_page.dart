@@ -804,6 +804,24 @@ class _SparePartFormSheetState extends State<SparePartFormSheet> {
                 border: OutlineInputBorder(),
               ),
             ),
+            // NEW: Brand Dropdown
+            const SizedBox(height: 12),
+            DropdownButtonFormField<int?>(
+              value: selectedBrandId,
+              decoration: const InputDecoration(
+                labelText: 'Brand',
+                border: OutlineInputBorder(),
+              ),
+              hint: const Text('Select Brand'),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('No Brand')),
+                ...widget.brands.map((b) => DropdownMenuItem(
+                  value: b['id'] as int?,
+                  child: Text(b['name'] as String),
+                )),
+              ],
+              onChanged: (v) => setState(() => selectedBrandId = v),
+            ),
             const SizedBox(height: 12),
             DropdownButtonFormField<Category?>(
               value: selectedCategory,

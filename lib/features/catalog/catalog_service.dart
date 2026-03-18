@@ -1,3 +1,4 @@
+ 
 import '../../core/api/dio_client.dart';
 import 'product.dart';
 import 'category.dart';
@@ -209,5 +210,16 @@ import 'package:dio/dio.dart';
 
   Future<void> deleteTopProductImage(int index) async {
     await client.dio.delete('/api/admin/top-products/images/$index');
+  }
+
+   /// Update the position of a top product image
+  Future<void> updateTopProductPosition(int oldIndex, int newIndex) async {
+    await client.dio.post(
+      '/api/admin/top-products/images/reorder',
+      data: {
+        'old_index': oldIndex,
+        'new_index': newIndex,
+      },
+    );
   }
 }
